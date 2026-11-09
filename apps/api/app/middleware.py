@@ -53,7 +53,10 @@ def register_middlewares_and_handlers(
                         "message": "Bạn gửi quá nhiều yêu cầu trong 1 phút. Vui lòng thử lại sau giây lát.",
                     }
                 },
-                headers={"X-Robots-Tag": "noindex, nofollow, noarchive"},
+                headers={
+                    "X-Robots-Tag": "noindex, nofollow, noarchive",
+                    "Cache-Control": "no-store",
+                },
             )
 
         started = time.perf_counter()
@@ -63,6 +66,21 @@ def register_middlewares_and_handlers(
         response.headers["X-Robots-Tag"] = "noindex, nofollow, noarchive"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Response-Time-Ms"] = str(elapsed_ms)
+
+        # Chính sách Cache CDN cho Vercel Hobby: cache các endpoint GET đọc dữ liệu ATT&CK theo Authorization,
+        # đồng thời cấm cache các route thông tin cá nhân/quản trị hoặc phản hồi lỗi.
+        path = request.url.path
+        if "cache-control" not in response.headers:
+            is_sensitive_path = (
+                path == "/api/me"
+                or path.startswith("/api/admin")
+                or request.query_params.get("check_remote") == "true"
+            )
+            if request.method == "GET" and response.status_code == 200 and not is_sensitive_path and path != "/api/health":
+                response.headers["Cache-Control"] = "public, max-age=300, s-maxage=1800, stale-while-revalidate=86400"
+                response.headers["Vary"] = "Authorization"
+            elif response.status_code >= 400 or is_sensitive_path:
+                response.headers["Cache-Control"] = "no-store"
 
         logger.info(
             "api_request method=%s path=%s status=%s duration_ms=%s ip=%s",

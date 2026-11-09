@@ -501,7 +501,12 @@ export function MatrixPage() {
           ))}
         </div>
       ) : (
-        <div className="overflow-x-auto pb-4 max-h-[calc(100vh-250px)] rounded-2xl">
+        <div
+          role="region"
+          aria-label={`Ma trận MITRE ATT&CK ${domain}`}
+          tabIndex={0}
+          className="overflow-x-auto pb-4 max-h-[calc(100vh-250px)] rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
+        >
           <div className="flex items-start gap-3 min-w-max pr-2">
             {filteredColumns.map((col) => (
               <TacticColumnCard

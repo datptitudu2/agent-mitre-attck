@@ -12,7 +12,7 @@
   }
 
   body {
-    @apply font-sans;
+    @apply font-sans transition-colors duration-200;
   }
 }
 

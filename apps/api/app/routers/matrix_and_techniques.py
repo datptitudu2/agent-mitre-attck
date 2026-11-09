@@ -37,7 +37,9 @@ async def get_domain_matrix(
                 status_code=status.HTTP_304_NOT_MODIFIED,
                 headers={
                     "ETag": meta["etag"],
-                    "Cache-Control": "private, max-age=3600, stale-while-revalidate=86400",
+                    "Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
+                    "CDN-Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+                    "Vary": "Authorization",
                 },
             )
 
@@ -52,7 +54,9 @@ async def get_domain_matrix(
         )
 
     response.headers["ETag"] = row["etag"]
-    response.headers["Cache-Control"] = "private, max-age=3600, stale-while-revalidate=86400"
+    response.headers["Cache-Control"] = "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400"
+    response.headers["CDN-Cache-Control"] = "public, s-maxage=3600, stale-while-revalidate=86400"
+    response.headers["Vary"] = "Authorization"
     return row["payload"]
 
 
