@@ -3,7 +3,7 @@
 import logging
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 import httpx
 from pydantic import BaseModel, Field
 
@@ -23,10 +23,14 @@ class SyncRequest(BaseModel):
 
 @router.get("/versions")
 async def get_versions(
+    check_remote: bool = Query(
+        default=False,
+        description="Nếu bật, gọi thêm index.json từ GitHub MITRE để so sánh bản mới nhất.",
+    ),
     _user: AuthenticatedUser = Depends(get_current_user),
     db: SupabaseDataClient = Depends(get_db_client),
 ) -> Dict[str, Any]:
-    """So sánh phiên bản đang lưu trong Supabase với index.json chính thức của MITRE."""
+    """Đọc phiên bản đang lưu trong Supabase (và tuỳ chọn đối chiếu index.json trực tuyến của MITRE)."""
     db_versions = await db.fetch_all_sql(
         """
         select domain, version, released_at, is_latest, stats, synced_at
@@ -56,13 +60,14 @@ async def get_versions(
     db_by_domain = {r["domain"]: r for r in db_versions}
 
     remote_latest: Dict[str, Optional[str]] = {}
-    try:
-        remote_index = await fetch_remote_index(timeout=8.0)
-        for dom in SUPPORTED_DOMAINS:
-            vers = remote_index.get(dom) or []
-            remote_latest[dom] = vers[0].version if vers else None
-    except Exception as exc:
-        logger.warning("Không đọc được index.json từ MITRE lúc kiểm tra phiên bản: %s", exc)
+    if check_remote:
+        try:
+            remote_index = await fetch_remote_index(timeout=5.0)
+            for dom in SUPPORTED_DOMAINS:
+                vers = remote_index.get(dom) or []
+                remote_latest[dom] = vers[0].version if vers else None
+        except Exception as exc:
+            logger.warning("Không đọc được index.json từ MITRE lúc kiểm tra phiên bản: %s", exc)
 
     domains_info = []
     any_update_available = False

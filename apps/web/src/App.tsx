@@ -2,7 +2,9 @@ import { useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppShell } from '@/components/layout/AppShell'
+import { DashboardPage } from '@/pages/DashboardPage'
 import { LoginPage } from '@/pages/LoginPage'
+import { MatrixPage } from '@/pages/MatrixPage'
 import { PlaceholderShellPage } from '@/pages/PlaceholderShellPage'
 import { useAuthStore } from '@/stores/useAuthStore'
 
@@ -49,24 +51,8 @@ export function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route element={<ProtectedRoutes />}>
-            <Route
-              path="/"
-              element={
-                <PlaceholderShellPage
-                  title="Tổng quan ATT&CK Lab"
-                  phaseNote="Khung xác thực & bảo vệ Route nội bộ đã sẵn sàng (Phase 1). Bảng điều khiển số liệu live sẽ hiển thị ở Phase 3 sau khi đồng bộ STIX ở Phase 2."
-                />
-              }
-            />
-            <Route
-              path="/matrix"
-              element={
-                <PlaceholderShellPage
-                  title="Matrix Explorer"
-                  phaseNote="Sẽ hoàn thiện ở Phase 3 ngay sau khi đồng bộ dữ liệu STIX 2.1 ở Phase 2."
-                />
-              }
-            />
+            <Route path="/" element={<DashboardPage />} />
+            <Route path="/matrix" element={<MatrixPage />} />
             <Route
               path="/cases"
               element={
