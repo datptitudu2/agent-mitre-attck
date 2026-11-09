@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from apps.api.app.auth import AuthenticatedUser, get_current_user
 from apps.api.app.config import Settings, get_settings
 from apps.api.app.middleware import register_middlewares_and_handlers
+from apps.api.app.routers import entities_and_diff, matrix_and_techniques, versions_and_sync
 
 logging.basicConfig(
     level=logging.INFO,
@@ -22,7 +23,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application = FastAPI(
         title="ATT&CK Lab API",
         description="API nội bộ phục vụ trực quan hoá và học tập MITRE ATT&CK (Giáo dục phòng thủ).",
-        version="0.1.0",
+        version="0.2.0",
         docs_url="/api/docs",
         openapi_url="/api/openapi.json",
     )
@@ -52,6 +53,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @api_router.get("/me", tags=["Auth"])
     async def read_current_user(user: AuthenticatedUser = Depends(get_current_user)):
         return {"user": user.model_dump()}
+
+    api_router.include_router(versions_and_sync.router)
+    api_router.include_router(matrix_and_techniques.router)
+    api_router.include_router(entities_and_diff.router)
 
     application.include_router(api_router)
     return application

@@ -1,0 +1,54 @@
+name: Sync MITRE ATT&CK STIX Data
+
+on:
+  schedule:
+    # Chạy tự động lúc 02:00 UTC sáng Thứ Hai hằng tuần (vừa cập nhật ATT&CK, vừa giữ Supabase Free không bị ngủ)
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: 'Domain cần đồng bộ (all / enterprise-attack / mobile-attack / ics-attack)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - enterprise-attack
+          - mobile-attack
+          - ics-attack
+      version:
+        description: 'Phiên bản ATT&CK (mặc định: latest)'
+        required: false
+        default: 'latest'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  sync-stix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run STIX 2.1 Crawler & Supabase Upsert
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python -m apps.api.scripts.sync_attack \
+            --domain "${{ inputs.domain || 'all' }}" \
+            --version "${{ inputs.version || 'latest' }}" \
+            --trigger-source "github_actions"
