@@ -1,0 +1,84 @@
+slug: notpetya-wiper
+title: "NotPetya — Mã độc Tự lan truyền & Phá huỷ Diện rộng"
+subtitle: "Bài học thực tế về tốc độ lây lan ngang trong mạng phẳng và tầm quan trọng của phân vùng mạng"
+domain: enterprise-attack
+source_type: software
+lookup_name: "NotPetya"
+year_label: "2017"
+difficulty: "Cơ bản"
+is_hypothetical: false
+tags:
+  - "Wiper / Impact"
+  - "Lateral Movement"
+  - "Network Segmentation"
+summary_vi: >
+  NotPetya ngụy trang dưới hình thức ransomware nhưng thực chất là mã độc phá huỷ dữ liệu (wiper),
+  kết hợp đánh cắp thông tin xác thực trong bộ nhớ với khả năng tự lây lan cực nhanh qua mạng nội bộ.
+why_it_matters_vi: >
+  Minh hoạ rõ nhất mối nguy của kiến trúc mạng phẳng (flat network): chỉ một máy trạm bị xâm nhập có thể kéo sập hàng nghìn máy chủ toàn cầu trong vài chục phút nếu thiếu phân vùng mạng.
+steps:
+  - step_order: 1
+    technique_name: "Rundll32"
+    tactic_hint: "stealth"
+    stage_title_vi: "Thực thi thư viện độc hại thông qua tiện ích hệ thống hợp lệ"
+    plain_vi: >
+      Mã độc sử dụng trình nạp thư viện có sẵn của hệ điều hành để khởi chạy thành phần chính, giúp giảm khả năng bị chú ý so với việc chạy một tệp thực thi lạ độc lập.
+    telemetry_vi: >
+      Tiến trình hệ thống nạp tệp thư viện từ thư mục tạm hoặc với tham số dòng lệnh khác thường.
+    defender_vi: >
+      Giám sát cây tiến trình (process lineage) và các tham số khởi chạy bất thường của các tiện ích hệ thống chuẩn (LOLBins).
+
+  - step_order: 2
+    technique_name: "LSASS Memory"
+    tactic_hint: "credential-access"
+    stage_title_vi: "Trích xuất thông tin đăng nhập lưu trong bộ nhớ tạm"
+    plain_vi: >
+      Để có chìa khoá đi sang các máy lân cận, mã độc đọc vùng bộ nhớ của tiến trình quản lý đăng nhập nhằm thu thập thông tin xác thực của các tài khoản quản trị đang hoạt động trên máy.
+    telemetry_vi: >
+      Tiến trình không phải thành phần hệ thống yêu cầu quyền đọc bộ nhớ nhạy cảm của dịch vụ xác thực cục bộ.
+    defender_vi: >
+      Bật tính năng bảo vệ tiến trình xác thực (LSA Protection / Credential Guard), hạn chế đăng nhập tài khoản Domain Admin trực tiếp lên máy trạm.
+
+  - step_order: 3
+    technique_name: "SMB/Windows Admin Shares"
+    tactic_hint: "lateral-movement"
+    stage_title_vi: "Di chuyển ngang qua thư mục chia sẻ quản trị nội bộ"
+    plain_vi: >
+      Sử dụng thông tin tài khoản vừa thu được, mã độc tự động chép bản sao của chính nó sang các máy tính khác trong cùng dải mạng thông qua chia sẻ quản trị mặc định.
+    telemetry_vi: >
+      Một máy trạm người dùng đột ngột mở hàng loạt kết nối chia sẻ tệp quản trị tới nhiều máy trạm và máy chủ khác trong thời gian ngắn.
+    defender_vi: >
+      Chặn giao tiếp SMB trực tiếp giữa các máy trạm người dùng (workstation-to-workstation firewall) và phân tách nghiêm ngặt vùng máy chủ.
+
+  - step_order: 4
+    technique_name: "Windows Management Instrumentation"
+    tactic_hint: "execution"
+    stage_title_vi: "Kích hoạt thực thi từ xa trên các máy lân cận"
+    plain_vi: >
+      Sau khi chép tệp thành công sang máy đích, mã độc dùng công cụ quản trị từ xa có sẵn để ra lệnh khởi chạy bản sao trên máy mới, tạo thành hiệu ứng dây chuyền.
+    telemetry_vi: >
+      Tiến trình quản trị từ xa khởi tạo tiến trình con trên nhiều máy đích liên tiếp từ một nguồn không phải máy chủ quản trị tập trung.
+    defender_vi: >
+      Chỉ cho phép kết nối quản trị từ xa xuất phát từ các máy trạm quản trị chuyên dụng (PAW / Jump Host) và cảnh báo khi xuất hiện kết nối ngang hàng.
+
+  - step_order: 5
+    technique_name: "Clear Windows Event Logs"
+    tactic_hint: "defense-impairment"
+    stage_title_vi: "Xoá nhật ký sự kiện cục bộ nhằm cản trở điều tra"
+    plain_vi: >
+      Trước khi gây tác động cuối cùng, mã độc phát lệnh xoá các bản ghi nhật ký hệ thống và bảo mật trên máy để gây khó khăn cho đội ứng cứu sự cố.
+    telemetry_vi: >
+      Sự kiện báo hiệu nhật ký bảo mật vừa bị xoá sạch hoặc luồng log từ máy trạm bị đứt quãng đột ngột.
+    defender_vi: >
+      Chuyển tiếp nhật ký thời gian thực (log forwarding) về máy chủ SIEM tập trung ngay khi sự kiện phát sinh để bản sao log luôn an toàn ngoài máy trạm.
+
+  - step_order: 6
+    technique_name: "Data Encrypted for Impact"
+    tactic_hint: "impact"
+    stage_title_vi: "Mã hoá cấu trúc đĩa và làm tê liệt hệ thống khởi động"
+    plain_vi: >
+      Mã độc hẹn giờ khởi động lại máy và ghi đè/mã hoá bảng phân vùng tệp tin chính, khiến hệ điều hành không thể khởi động và dữ liệu không thể phục hồi bằng tiền chuộc.
+    telemetry_vi: >
+      Hành vi truy cập ghi trực tiếp xuống ổ đĩa vật lý mức thấp và tạo tác vụ hẹn giờ khởi động lại hệ thống hàng loạt.
+    defender_vi: >
+      Duy trì bản sao lưu ngoại tuyến bất biến (immutable/offline backups) theo quy tắc 3-2-1 và diễn tập quy trình khôi phục thảm hoạ định kỳ.

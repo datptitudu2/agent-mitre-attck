@@ -1,0 +1,101 @@
+slug: solarwinds-compromise
+title: "SolarWinds Compromise — Chiến dịch Tấn công Chuỗi cung ứng"
+subtitle: "Từ bản cập nhật phần mềm hợp lệ đến chiếm quyền xác thực đám mây (SAML Golden Ticket)"
+domain: enterprise-attack
+source_type: campaign
+lookup_name: "SolarWinds Compromise"
+year_label: "2019 – 2020"
+difficulty: "Trung bình"
+is_hypothetical: false
+tags:
+  - "Supply Chain"
+  - "Cloud & Identity"
+  - "Stealth & Defense Impairment"
+summary_vi: >
+  Chiến dịch tấn công chuỗi cung ứng kinh điển khi nhóm tấn công chèn mã độc ẩn vào quy trình biên dịch
+  phần mềm quản trị mạng hợp lệ, sau đó ẩn mình nhiều tuần trước khi leo thang sang hạ tầng định danh đám mây.
+why_it_matters_vi: >
+  Case study bắt buộc phải học để hiểu vì sao "phần mềm có chữ ký số hợp lệ" vẫn có thể bị lợi dụng,
+  và cách ATT&CK v19+ tách rõ hành vi ẩn mình (Stealth) với hành vi vô hiệu hoá giám sát (Defense Impairment).
+steps:
+  - step_order: 1
+    technique_name: "Compromise Software Supply Chain"
+    tactic_hint: "initial-access"
+    stage_title_vi: "Xâm nhập qua bản cập nhật phần mềm quản trị"
+    plain_vi: >
+      Thay vì tấn công trực diện từng tổ chức, kẻ tấn công can thiệp vào hệ thống đóng gói phần mềm của nhà cung cấp.
+      Khi khách hàng tải bản cập nhật định kỳ hợp lệ, thành phần độc hại được đưa vào mạng nội bộ một cách tự nhiên.
+    telemetry_vi: >
+      Sự thay đổi bất thường về hành vi mạng và tiến trình con khởi tạo từ dịch vụ quản trị hạ tầng vốn trước đó chỉ giao tiếp nội bộ.
+    defender_vi: >
+      Kiểm증 tính toàn vẹn quy trình CI/CD (SBOM, reproducible builds), cô lập máy chủ quản trị mạng trong phân vùng riêng và giám sát kết nối ra Internet từ các dịch vụ lõi.
+
+  - step_order: 2
+    technique_name: "Code Signing"
+    tactic_hint: "defense-impairment"
+    stage_title_vi: "Lợi dụng chữ ký số hợp lệ để vượt rào kiểm soát"
+    plain_vi: >
+      Do mã độc được chèn trước bước ký số chính thức của nhà sản xuất, tệp nhị phân mang chữ ký số hoàn toàn hợp lệ,
+      khiến các cơ chế kiểm tra uy tín tệp tin thông thường coi đây là phần mềm tin cậy.
+    telemetry_vi: >
+      Thư viện hoặc tiến trình có chữ ký hợp lệ nhưng lại thực hiện hành vi nạp module lạ hoặc kết nối tới miền ngoài danh mục vận hành.
+    defender_vi: >
+      Không miễn trừ giám sát hành vi (behavioral monitoring) cho các tiến trình đã ký số; kết hợp kiểm tra chứng chỉ với phân tích hành vi thời gian thực trên EDR.
+
+  - step_order: 3
+    technique_name: "Match Legitimate Resource Name or Location"
+    tactic_hint: "stealth"
+    stage_title_vi: "Ngụy trang tên tệp, tác vụ và lưu lượng giống hệt hệ thống thật"
+    plain_vi: >
+      Nhóm tấn công đặt tên tệp tin, tác vụ nền và định dạng gói tin điều khiển bắt chước giao thức chuẩn của phần mềm quản trị,
+      đồng thời nằm vùng yên lặng nhiều ngày trước khi kích hoạt kết nối.
+    telemetry_vi: >
+      Các tác vụ định kỳ hoặc tệp thư viện có tên gần giống thành phần chuẩn nhưng khác đường dẫn chuẩn hoặc khác thời điểm cài đặt.
+    defender_vi: >
+      Áp dụng baseline danh mục tệp chuẩn (file integrity monitoring) trên máy chủ trọng yếu và đối chiếu tần suất beacon DNS/HTTPS bất thường.
+
+  - step_order: 4
+    technique_name: "Disable or Modify Tools"
+    tactic_hint: "defense-impairment"
+    stage_title_vi: "Kiểm tra và làm suy yếu công cụ bảo mật trên máy đích"
+    plain_vi: >
+      Trước khi triển khai công cụ giai đoạn hai, tác nhân tấn công rà soát danh sách dịch vụ an ninh đang chạy
+      và tìm cách tạm dừng hoặc né tránh các trình thu thập sự kiện trên máy chủ.
+    telemetry_vi: >
+      Sự kiện thay đổi trạng thái dịch vụ bảo mật, sửa đổi cấu hình registry của agent giám sát hoặc gián đoạn đột ngột luồng heartbeat EDR.
+    defender_vi: >
+      Bật cơ chế chống can thiệp (Tamper Protection) cho EDR/Sysmon và thiết lập cảnh báo ưu tiên cao ngay khi agent ngừng gửi telemetry.
+
+  - step_order: 5
+    technique_name: "SAML Tokens"
+    tactic_hint: "credential-access"
+    stage_title_vi: "Giả mạo xác thực liên kết đám mây (Golden SAML)"
+    plain_vi: >
+      Sau khi chiếm được khoá ký xác thực trên máy chủ định danh nội bộ, kẻ tấn công tự phát hành thẻ xác thực SAML hợp lệ
+      để đăng nhập vào các dịch vụ đám mây với quyền quản trị mà không cần mật khẩu hay MFA thông thường.
+    telemetry_vi: >
+      Phiên đăng nhập SAML xuất hiện trên dịch vụ đám mây nhưng không có bản ghi xác thực tương ứng tại máy chủ Identity Provider (IdP) nội bộ.
+    defender_vi: >
+      Bảo vệ khoá ký chứng chỉ IdP bằng HSM, xoay vòng khoá định kỳ và đối chiếu chéo nhật ký phát hành token tại IdP với nhật ký truy cập trên Cloud.
+
+  - step_order: 6
+    technique_name: "Remote Email Collection"
+    tactic_hint: "collection"
+    stage_title_vi: "Thu thập hộp thư và tài liệu nhạy cảm qua API đám mây"
+    plain_vi: >
+      Với quyền truy cập đám mây hợp lệ, nhóm tấn công truy vấn các hộp thư điện tử và kho tài liệu quan trọng thông qua API quản trị chính thức.
+    telemetry_vi: >
+      Ứng dụng OAuth hoặc tài khoản dịch vụ đột ngột được cấp quyền đọc hộp thư diện rộng hoặc truy vấn lượng lớn dữ liệu từ địa chỉ IP lạ.
+    defender_vi: >
+      Giám sát chặt chẽ các sự kiện cấp quyền ứng dụng trên Cloud/M365, giới hạn phạm vi quyền (least privilege) và bật audit log mức chi tiết cho truy cập hộp thư.
+
+  - step_order: 7
+    technique_name: "Exfiltration Over Asymmetric Encrypted Non-C2 Protocol"
+    tactic_hint: "exfiltration"
+    stage_title_vi: "Rút dữ liệu qua kênh mã hoá lẫn vào lưu lượng hợp lệ"
+    plain_vi: >
+      Dữ liệu sau khi nén và mã hoá được chuyển ra ngoài qua các kết nối HTTPS đến hạ tầng máy chủ trung gian đặt cùng quốc gia với nạn nhân để tránh gây chú ý.
+    telemetry_vi: >
+      Lưu lượng tải lên (upload) bất đối xứng kéo dài tới các miền mới đăng ký hoặc máy chủ đám mây không thuộc đối tác kinh doanh.
+    defender_vi: >
+      Phân tích bất thường lưu lượng TLS đầu ra (JA3/JA4, dung lượng upload, độ tuổi tên miền) và áp dụng danh sách kiểm soát truy cập mạng đầu ra (egress filtering).

@@ -172,3 +172,96 @@ export interface SearchResultItem {
   replaced_by_attack_id: string | null
   usage_count: number
 }
+
+
+export interface CaseStudySummary {
+  slug: string
+  title: string
+  subtitle: string
+  domain: AttackDomain
+  source_type: 'campaign' | 'group' | 'software' | 'scenario'
+  lookup_name: string
+  entity_attack_id: string | null
+  entity_name: string
+  year_label: string
+  difficulty: string
+  is_hypothetical: boolean
+  disclaimer_vi?: string | null
+  tags: string[]
+  summary_vi: string
+  why_it_matters_vi: string
+  step_count: number
+}
+
+export interface CaseStepDetectionStrategy {
+  attack_id: string
+  name: string
+  url?: string
+  analytics: Array<{
+    attack_id: string
+    name: string
+    description: string
+    platforms: string[]
+    log_sources: Array<{
+      name: string
+      channel: string
+      data_component_id: string | null
+      data_component_name: string | null
+    }>
+  }>
+}
+
+export interface CaseStudyStep {
+  step_order: number
+  stage_title_vi: string
+  plain_vi: string
+  telemetry_vi: string
+  defender_vi: string
+  resolved: boolean
+  attack_id: string
+  technique_name: string
+  tactic_shortname: string
+  tactic_name: string
+  tactic_id: string
+  tactic_order: number
+  platforms: string[]
+  is_subtechnique: boolean
+  is_new: boolean
+  revoked: boolean
+  deprecated: boolean
+  replaced_by_attack_id: string | null
+  mitre_url?: string | null
+  mitre_procedure?: string | null
+  detection_strategies: CaseStepDetectionStrategy[]
+  mitigations: Array<{
+    attack_id: string
+    name: string
+    description: string
+  }>
+}
+
+export interface CaseStudyDetail {
+  slug: string
+  title: string
+  subtitle: string
+  domain: AttackDomain
+  attack_version: string
+  source_type: 'campaign' | 'group' | 'software' | 'scenario'
+  lookup_name: string
+  year_label: string
+  difficulty: string
+  is_hypothetical: boolean
+  disclaimer_vi?: string | null
+  tags: string[]
+  summary_vi: string
+  why_it_matters_vi: string
+  entity: {
+    attack_id: string
+    name: string
+    type: string
+    description: string
+    url?: string
+  } | null
+  steps: CaseStudyStep[]
+  navigator_layer: Record<string, unknown>
+}

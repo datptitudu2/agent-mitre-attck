@@ -7,7 +7,7 @@
   "functions": {
     "api/index.py": {
       "maxDuration": 60,
-      "excludeFiles": "{apps/web/**,apps/api/tests/**,apps/api/scripts/**,content/**/*.md,supabase/**,.git/**,node_modules/**,**/__pycache__/**}"
+      "excludeFiles": "{apps/web/**,apps/api/tests/**,apps/api/scripts/**,.cache/**,supabase/**,.git/**,node_modules/**,**/__pycache__/**}"
     }
   },
   "headers": [

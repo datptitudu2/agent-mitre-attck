@@ -1,0 +1,79 @@
+slug: ai-enterprise-assistant-v20
+title: "Kịch bản Minh hoạ AI (v20+) — Tấn công Trợ lý AI Nội bộ & Rò rỉ Dữ liệu"
+subtitle: "Giả định học tập minh hoạ trọn bộ các kỹ thuật AI mới nhất được MITRE bổ sung từ ATT&CK v20"
+domain: enterprise-attack
+source_type: scenario
+lookup_name: "Educational AI Scenario (v20)"
+year_label: "ATT&CK v20+"
+difficulty: "Nâng cao"
+is_hypothetical: true
+disclaimer_vi: >
+  LƯU Ý HỌC TẬP: Đây là KỊCH BẢN MINH HOẠ GIẢ ĐỊNH (Educational Scenario), KHÔNG phải một sự cố đơn lẻ có thật.
+  Kịch bản được biên soạn thuần tuý cho mục đích giáo dục phòng thủ nhằm kết nối trực quan các kỹ thuật tập trung vào AI
+  mới xuất hiện trong dữ liệu chính thức MITRE ATT&CK v20+.
+tags:
+  - "AI / LLM Security"
+  - "ATT&CK v20 NEW"
+  - "Educational Scenario"
+summary_vi: >
+  Kịch bản giả định mô tả cách một hệ thống Trợ lý AI doanh nghiệp (kết nối kho tài liệu RAG và công cụ tự động hoá nội bộ)
+  có thể bị thao túng qua dữ liệu đầu vào nhiễm độc để làm suy yếu bộ lọc tự động và làm lộ thông tin nhạy cảm.
+why_it_matters_vi: >
+  Từ phiên bản v20 (10/2026), MITRE chính thức đưa các kỹ thuật nhắm vào AI (Prompt Injection, AI Result Poisoning, Impair Autonomous Defenses, AI-Enabled Exfiltration)
+  vào ma trận Enterprise. Đội bảo mật cần hiểu rõ ranh giới tin cậy mới giữa Dữ liệu (Data) và Chỉ thị điều khiển (Instruction).
+steps:
+  - step_order: 1
+    technique_name: "AI Result Poisoning"
+    tactic_hint: "resource-development"
+    stage_title_vi: "Đầu độc nguồn tri thức công khai mà hệ thống AI thường tham khảo"
+    plain_vi: >
+      Trong kịch bản giả định, kẻ tấn công đăng tải các tài liệu kỹ thuật công khai chứa thông tin sai lệch có chủ đích
+      để khi công cụ tìm kiếm hoặc kho tri thức AI thu thập về sẽ đưa ra gợi ý có lợi cho kẻ tấn công.
+    telemetry_vi: >
+      Kho dữ liệu nạp vào hệ thống RAG (Retrieval-Augmented Generation) xuất hiện các nguồn bên ngoài chưa qua kiểm duyệt hoặc thay đổi nội dung bất thường.
+    defender_vi: >
+      Kiểm soát nguồn gốc dữ liệu đưa vào chỉ mục RAG (data provenance), chỉ lập chỉ mục tài liệu từ nguồn nội bộ tin cậy đã xác thực và quét nội dung bất thường trước khi nhúng vector.
+
+  - step_order: 2
+    technique_name: "Direct Prompt Injection"
+    tactic_hint: "execution"
+    stage_title_vi: "Thử nghiệm thao túng trực tiếp cổng hội thoại AI đối diện bên ngoài"
+    plain_vi: >
+      Thông qua chatbot hỗ trợ khách hàng công khai, đối tượng thử gửi các yêu cầu hội thoại khéo léo nhằm dò xem mô hình có tiết lộ hướng dẫn hệ thống hoặc danh sách công cụ được gắn kèm hay không.
+    telemetry_vi: >
+      Nhật ký cổng AI Gateway ghi nhận chuỗi truy vấn lặp lại có dấu hiệu ép mô hình bỏ qua ngữ cảnh vai trò hoặc yêu cầu liệt kê cấu hình nội bộ.
+    defender_vi: >
+      Tách biệt hoàn toàn chatbot đối diện Internet khỏi dữ liệu nội bộ, ẩn thông tin cấu hình nhạy cảm khỏi system prompt và áp dụng lớp lọc đầu vào/đầu ra độc lập (AI Guardrails).
+
+  - step_order: 3
+    technique_name: "Indirect Prompt Injection"
+    tactic_hint: "execution"
+    stage_title_vi: "Cài chỉ thị ẩn trong tài liệu gửi vào quy trình tóm tắt tự động"
+    plain_vi: >
+      Khi trợ lý AI nội bộ đọc và tóm tắt một tệp hồ sơ gửi từ bên ngoài, phần văn bản ẩn trong tệp khiến mô hình hiểu nhầm dữ liệu cần đọc thành mệnh lệnh mới cần thực thi.
+    telemetry_vi: >
+      Phiên xử lý của AI Agent đột ngột gọi sang các công cụ truy vấn dữ liệu khác chủ đề ngay sau khi đọc một tài liệu từ nguồn bên ngoài.
+    defender_vi: >
+      Áp dụng nguyên tắc phân tách ngữ cảnh dữ liệu không tin cậy, bắt buộc người dùng xác nhận thủ công (Human-in-the-loop) trước khi AI Agent được phép kích hoạt bất kỳ hành động có tác dụng phụ nào.
+
+  - step_order: 4
+    technique_name: "Impair Autonomous Defenses"
+    tactic_hint: "defense-impairment"
+    stage_title_vi: "Làm nhiễu bộ phân loại cảnh báo tự động để giảm mức độ ưu tiên"
+    plain_vi: >
+      Nếu hệ thống SOC dùng mô hình tự động để tóm tắt và phân loại mức độ nghiêm trọng của sự kiện, kẻ tấn công chèn ngữ cảnh gây nhiễu khiến tác nhân tự động đánh giá nhầm sự kiện đáng ngờ là hoạt động kiểm thử hợp lệ.
+    telemetry_vi: >
+      Sự chênh lệch bất thường giữa cảnh báo thô từ cảm biến EDR/SIEM và kết luận giảm nhẹ tự động của thành phần phân loại thông minh.
+    defender_vi: >
+      Không bao giờ để tác nhân AI tự động đóng cảnh báo mức cao mà không có quy tắc xác định (deterministic rules) kiểm chứng độc lập; giám sát tỷ lệ đóng tự động bất thường.
+
+  - step_order: 5
+    technique_name: "AI-Enabled Exfiltration"
+    tactic_hint: "exfiltration"
+    stage_title_vi: "Lợi dụng kênh phản hồi hoặc kết xuất liên kết của trợ lý AI để rò rỉ thông tin"
+    plain_vi: >
+      Trong bước cuối của kịch bản minh hoạ, mô hình bị dẫn dắt tóm tắt thông tin nhạy cảm mà người dùng hiện tại có quyền đọc rồi chèn vào tham số truy vấn hình ảnh/liên kết ngoài hoặc phản hồi ra kênh tích hợp.
+    telemetry_vi: >
+      Trình duyệt hoặc dịch vụ backend của ứng dụng AI phát sinh yêu cầu tải tài nguyên tới tên miền lạ có chứa chuỗi tham số dài bất thường ngay trong lúc hiển thị câu trả lời.
+    defender_vi: >
+      Áp dụng Content Security Policy (CSP) chặn tuyệt đối việc kết xuất ảnh/liên kết tới tên miền ngoài từ khung hội thoại AI, kiểm tra DLP trên đầu ra mô hình và giới hạn quyền truy cập dữ liệu của AI theo đúng quyền tối thiểu của người dùng.

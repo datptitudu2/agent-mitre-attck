@@ -1,0 +1,95 @@
+slug: apt32-oceanlotus
+title: "APT32 (OceanLotus) — Chuỗi Kỹ thuật Đặc trưng tại Khu vực Đông Nam Á"
+subtitle: "Phân tích chiến thuật ngụy trang, thực thi không tệp và di chuyển ngang gần gũi với bối cảnh doanh nghiệp Việt Nam"
+domain: enterprise-attack
+source_type: group
+lookup_name: "APT32"
+year_label: "Đông Nam Á"
+difficulty: "Trung bình"
+is_hypothetical: false
+tags:
+  - "Southeast Asia"
+  - "Fileless & Stealth"
+  - "Enterprise Defense"
+summary_vi: >
+  APT32 (OceanLotus) được MITRE ATT&CK ghi nhận với bộ kỹ thuật ngụy trang tinh vi, tận dụng công cụ có sẵn trên hệ điều hành
+  và lưu trữ không tệp (fileless) nhằm duy trì hiện diện bền bỉ trong mạng doanh nghiệp.
+why_it_matters_vi: >
+  Đây là nhóm kỹ thuật rất sát thực tế mà các trung tâm giám sát an toàn thông tin (SOC) tại khu vực Đông Nam Á thường xuyên cần xây dựng kịch bản săn tìm mối đe doạ (Threat Hunting).
+steps:
+  - step_order: 1
+    technique_name: "Spearphishing Attachment"
+    tactic_hint: "initial-access"
+    stage_title_vi: "Tài liệu đính kèm mồi nhử theo chủ đề công việc nội bộ"
+    plain_vi: >
+      Chiến dịch thường mở đầu bằng email mang nội dung báo cáo tài chính, hồ sơ hành chính hoặc văn bản chuyên ngành đính kèm tệp tài liệu được thiết kế sát ngữ cảnh người nhận.
+    telemetry_vi: >
+      Email từ bên ngoài đính kèm tệp tài liệu văn phòng hoặc tệp nén chứa lối tắt khởi chạy trình thông dịch kịch bản.
+    defender_vi: >
+      Quét tách lớp tệp đính kèm tại Email Gateway, gắn nhãn cảnh báo thư ngoài tổ chức và vô hiệu hoá tự động thực thi nội dung động trong tài liệu văn phòng.
+
+  - step_order: 2
+    technique_name: "Mshta"
+    tactic_hint: "stealth"
+    stage_title_vi: "Mượn trình chạy ứng dụng HTML có sẵn của hệ điều hành"
+    plain_vi: >
+      Thay vì thả ngay tệp thực thi `.exe` dễ bị phần mềm diệt virus chặn, chuỗi tấn công gọi tiện ích hợp lệ sẵn có của hệ điều hành để nạp và thực thi kịch bản từ xa hoặc từ dữ liệu mã hoá.
+    telemetry_vi: >
+      Tiến trình tiện ích HTML hệ thống được khởi chạy từ ứng dụng văn phòng hoặc thực hiện kết nối mạng ra ngoài Internet.
+    defender_vi: >
+      Chặn hoặc giới hạn nghiêm ngặt các tiện ích kịch bản cũ không cần thiết trong môi trường văn phòng thông qua AppLocker / WDAC và giám sát kết nối mạng của chúng.
+
+  - step_order: 3
+    technique_name: "Fileless Storage"
+    tactic_hint: "stealth"
+    stage_title_vi: "Cất giấu thành phần mã hoá trong Registry thay vì ổ đĩa"
+    plain_vi: >
+      Để tránh các đợt quét tệp tin định kỳ trên ổ cứng, dữ liệu cấu hình và mã thực thi giai đoạn sau được chia nhỏ và lưu dưới dạng chuỗi mã hoá ngay trong Registry.
+    telemetry_vi: >
+      Xuất hiện các giá trị Registry có kích thước lớn bất thường chứa dữ liệu nhị phân/Base64 ngẫu nhiên và được đọc bởi PowerShell hoặc tiến trình hệ thống.
+    defender_vi: >
+      Bật giám sát sự kiện ghi Registry bất thường (Sysmon Event ID 12/13) kết hợp Script Block Logging để nhìn rõ nội dung kịch bản sau khi giải mã trong bộ nhớ.
+
+  - step_order: 4
+    technique_name: "Scheduled Task"
+    tactic_hint: "persistence"
+    stage_title_vi: "Tạo tác vụ định kỳ mang tên giống dịch vụ cập nhật chuẩn"
+    plain_vi: >
+      Nhóm tấn công đăng ký tác vụ chạy định kỳ với tên gọi rất giống các trình cập nhật phần mềm phổ biến để kích hoạt lại kết nối mỗi khi máy khởi động.
+    telemetry_vi: >
+      Sự kiện đăng ký tác vụ định kỳ mới (Event ID 4698) có hành động khởi chạy trình thông dịch lệnh hoặc nạp dữ liệu từ khoá Registry lạ.
+    defender_vi: >
+      Thu thập tập trung sự kiện tạo/sửa Scheduled Task trên toàn mạng và săn tìm các tác vụ có tên gần giống dịch vụ hệ thống nhưng sai đường dẫn gốc.
+
+  - step_order: 5
+    technique_name: "OS Credential Dumping"
+    tactic_hint: "credential-access"
+    stage_title_vi: "Thu thập thông tin xác thực để mở rộng phạm vi truy cập"
+    plain_vi: >
+      Khi đã bám trụ ổn định trên máy trạm đầu tiên, tác nhân tấn công trích xuất băm mật khẩu hoặc vé xác thực để tìm đường tiếp cận máy chủ nội bộ.
+    telemetry_vi: >
+      Truy cập bất thường vào tiến trình xác thực hệ thống hoặc đọc bản sao lưu khoá Registry bảo mật cục bộ.
+    defender_vi: >
+      Triển khai mật khẩu quản trị cục bộ ngẫu nhiên riêng cho từng máy (LAPS), bật Credential Guard và cảnh báo ngay hành vi truy cập bộ nhớ tiến trình xác thực.
+
+  - step_order: 6
+    technique_name: "Pass the Hash"
+    tactic_hint: "lateral-movement"
+    stage_title_vi: "Đăng nhập sang máy chủ khác bằng mã băm mà không cần giải mã mật khẩu"
+    plain_vi: >
+      Sử dụng trực tiếp chuỗi băm xác thực thu thập được để xác thực ngang sang các máy chủ tài liệu và máy chủ ứng dụng trong mạng nội bộ.
+    telemetry_vi: >
+      Sự kiện đăng nhập mạng (Logon Type 3 với NTLM) xuất phát từ máy trạm người dùng thông thường tới nhiều máy chủ quan trọng.
+    defender_vi: >
+      Hạn chế tối đa giao thức xác thực NTLM cũ, ưu tiên Kerberos kèm phân tầng quản trị (Tiered Administration) và đưa các tài khoản nhạy cảm vào nhóm Protected Users.
+
+  - step_order: 7
+    technique_name: "Exfiltration Over C2 Channel"
+    tactic_hint: "exfiltration"
+    stage_title_vi: "Truyền dữ liệu thu thập được qua kênh điều khiển đã mã hoá"
+    plain_vi: >
+      Các gói tài liệu đã chọn lọc được chia nhỏ và gửi ra ngoài ngay trên chính luồng giao tiếp điều khiển định kỳ để giảm số lượng kết nối lạ.
+    telemetry_vi: >
+      Kết nối định kỳ theo chu kỳ thời gian đều đặn (beaconing) kèm đột biến dung lượng dữ liệu gửi ra ngoài vào các thời điểm cố định.
+    defender_vi: >
+      Kết hợp phân tích nhịp kết nối mạng (beacon analysis), kiểm tra DNS/Proxy log và giới hạn các máy chủ nội bộ không được phép kết nối trực tiếp ra Internet.

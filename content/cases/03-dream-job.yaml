@@ -1,0 +1,85 @@
+slug: operation-dream-job
+title: "Operation Dream Job — Nghệ thuật Giả mạo Tuyển dụng (Social Engineering)"
+subtitle: "Cách kẻ tấn công lợi dụng tâm lý tìm việc để vượt qua hàng rào kỹ thuật ban đầu"
+domain: enterprise-attack
+source_type: campaign
+lookup_name: "Operation Dream Job"
+year_label: "2020 – Nay"
+difficulty: "Cơ bản"
+is_hypothetical: false
+tags:
+  - "Social Engineering"
+  - "Reconnaissance"
+  - "Endpoint Defense"
+summary_vi: >
+  Chiến dịch tấn công có chủ đích sử dụng mồi nhử lời mời làm việc hấp dẫn trên mạng xã hội nghề nghiệp
+  để thuyết phục nhân sự kỹ thuật mở tài liệu mô tả công việc chứa mã độc.
+why_it_matters_vi: >
+  Cho thấy giai đoạn Chuẩn bị (Reconnaissance & Resource Development) gắn chặt với Xâm nhập ban đầu như thế nào,
+  rất thiết thực cho việc đào tạo nhận thức an toàn thông tin cho kỹ sư và quản trị viên.
+steps:
+  - step_order: 1
+    technique_name: "Gather Victim Identity Information"
+    tactic_hint: "reconnaissance"
+    stage_title_vi: "Thu thập hồ sơ nghề nghiệp và vai trò nhân sự mục tiêu"
+    plain_vi: >
+      Nhóm tấn công nghiên cứu thông tin công khai trên các nền tảng nghề nghiệp để xác định đúng kỹ sư, quản trị viên hệ thống có quyền truy cập vào dự án trọng yếu.
+    telemetry_vi: >
+      Giai đoạn này diễn ra bên ngoài hạ tầng tổ chức nên hầu như không để lại log nội bộ trực tiếp.
+    defender_vi: >
+      Hướng dẫn nhân sự hạn chế công khai chi tiết phiên bản công nghệ nội bộ, cấu trúc phòng ban và danh mục công cụ bảo mật đang vận hành trên hồ sơ cá nhân.
+
+  - step_order: 2
+    technique_name: "Social Media Accounts"
+    tactic_hint: "resource-development"
+    stage_title_vi: "Xây dựng tài khoản nhà tuyển dụng giả mạo có độ tin cậy cao"
+    plain_vi: >
+      Kẻ tấn công tạo lập hoặc chiếm quyền các hồ sơ chuyên viên săn đầu người của những tập đoàn lớn nhằm tạo dựng lòng tin qua nhiều cuộc trò chuyện trước khi gửi tệp.
+    telemetry_vi: >
+      Liên hệ từ tài khoản bên ngoài kèm đường dẫn tên miền mới đăng ký bắt chước thương hiệu tuyển dụng lớn.
+    defender_vi: >
+      Thiết lập kênh báo cáo nhanh cho nhân viên khi nhận được tệp tin tuyển dụng bất thường trên máy làm việc và chặn truy cập các tên miền mới đăng ký chưa xác minh.
+
+  - step_order: 3
+    technique_name: "Spearphishing via Service"
+    tactic_hint: "initial-access"
+    stage_title_vi: "Gửi tệp mô tả công việc qua nền tảng nhắn tin / dịch vụ đám mây"
+    plain_vi: >
+      Thay vì gửi qua email công ty vốn bị cổng bảo mật quét kỹ, kẻ tấn công gửi tài liệu qua ứng dụng nhắn tin hoặc liên kết lưu trữ đám mây trực tiếp cho mục tiêu.
+    telemetry_vi: >
+      Trình duyệt hoặc ứng dụng nhắn tin tải xuống tệp nén, tài liệu có macro hoặc tệp lối tắt từ kho lưu trữ đám mây bên ngoài.
+    defender_vi: >
+      Áp dụng kiểm soát tải tệp trên trình duyệt doanh nghiệp, mở tài liệu từ nguồn bên ngoài trong môi trường cô lập (Application Guard / Sandbox).
+
+  - step_order: 4
+    technique_name: "Malicious File"
+    tactic_hint: "execution"
+    stage_title_vi: "Người dùng mở tài liệu mồi nhử và kích hoạt tiến trình ngầm"
+    plain_vi: >
+      Khi mục tiêu mở tệp mô tả mức lương và phúc lợi, kịch bản ẩn bên trong được kích hoạt để tải thêm thành phần điều khiển về máy.
+    telemetry_vi: >
+      Ứng dụng văn phòng (Word/Excel/PDF reader) khởi tạo tiến trình dòng lệnh hoặc trình thông dịch kịch bản con.
+    defender_vi: >
+      Triển khai chính sách Attack Surface Reduction (ASR) chặn tuyệt đối ứng dụng văn phòng sinh tiến trình con hoặc thực thi macro từ Internet.
+
+  - step_order: 5
+    technique_name: "Registry Run Keys / Startup Folder"
+    tactic_hint: "persistence"
+    stage_title_vi: "Thiết lập tự khởi động cùng phiên làm việc của người dùng"
+    plain_vi: >
+      Để duy trì kết nối sau khi nhân viên tắt máy cuối ngày, mã độc ghi khoá tự khởi chạy vào cấu hình phiên người dùng.
+    telemetry_vi: >
+      Sự kiện tạo mới hoặc chỉnh sửa khoá tự khởi động trỏ tới thư mục người dùng hoặc tệp thư viện không chuẩn.
+    defender_vi: >
+      Giám sát chặt các vị trí tự khởi động phổ biến bằng Sysmon/EDR và định kỳ rà soát danh sách Autoruns trên toàn bộ máy trạm.
+
+  - step_order: 6
+    technique_name: "Archive via Utility"
+    tactic_hint: "collection"
+    stage_title_vi: "Gom và nén tài liệu dự án trước khi tuồn ra ngoài"
+    plain_vi: >
+      Sau khi rà soát các thư mục tài liệu kỹ thuật trên máy, kẻ tấn công gom các tệp nhạy cảm vào một gói nén có mật khẩu để chuẩn bị gửi đi.
+    telemetry_vi: >
+      Tiện ích nén dữ liệu chạy ở chế độ dòng lệnh ẩn và gom nhiều tệp từ các thư mục mã nguồn/tài liệu nội bộ vào thư mục tạm.
+    defender_vi: >
+      Phân loại dữ liệu nhạy cảm (DLP), cảnh báo hành vi nén hàng loạt tài liệu nội bộ và theo dõi lưu lượng tải lên các dịch vụ lưu trữ bên ngoài.

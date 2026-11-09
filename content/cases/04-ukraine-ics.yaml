@@ -1,0 +1,87 @@
+slug: ukraine-ics-power-grid
+title: "2016 Ukraine Electric Power Attack — Tấn công Hệ thống Điều khiển Trạm biến áp (ICS)"
+subtitle: "Cách sự cố từ mạng văn phòng IT lan sang mạng điều khiển công nghiệp OT gây mất điện diện rộng"
+domain: ics-attack
+source_type: campaign
+lookup_name: "2016 Ukraine Electric Power Attack"
+secondary_lookup_names:
+  - "Industroyer"
+year_label: "2016"
+difficulty: "Nâng cao"
+is_hypothetical: false
+tags:
+  - "ICS / OT"
+  - "Power Grid"
+  - "IT-OT Convergence"
+summary_vi: >
+  Sự cố lịch sử nhắm vào trạm biến áp truyền tải điện, nơi nhóm tấn công đi từ mạng IT sang môi trường OT
+  và sử dụng phần mềm độc hại chuyên biệt hiểu giao thức điện lực để tự động cắt máy cắt.
+why_it_matters_vi: >
+  Giúp đội bảo mật hiểu sự khác biệt cốt lõi giữa ATT&CK Enterprise và ATT&CK for ICS: trong môi trường OT,
+  mục tiêu tối thượng của phòng thủ là bảo toàn An toàn Vận hành (Safety), Khả năng Quan sát (View) và Điều khiển (Control).
+steps:
+  - step_order: 1
+    technique_name: "Remote Services"
+    tactic_hint: "initial-access"
+    stage_title_vi: "Đi vào vùng điều khiển qua kênh truy cập từ xa nối giữa IT và OT"
+    plain_vi: >
+      Sau khi thu thập được thông tin tài khoản ở mạng văn phòng, kẻ tấn công đi qua các kết nối truy cập từ xa hợp lệ để bước chân vào vùng mạng vận hành kỹ thuật.
+    telemetry_vi: >
+      Phiên đăng nhập từ xa qua ranh giới tường lửa IT–OT ngoài khung giờ bảo trì hoặc từ máy trạm không nằm trong lịch trực vận hành.
+    defender_vi: >
+      Thiết lập vùng đệm DMZ công nghiệp theo mô hình Purdue, bắt buộc MFA riêng biệt cho môi trường OT và chỉ mở phiên truy cập theo yêu cầu có phê duyệt.
+
+  - step_order: 2
+    technique_name: "Valid Accounts"
+    tactic_hint: "persistence"
+    stage_title_vi: "Duy trì hiện diện bằng tài khoản vận hành hợp lệ"
+    plain_vi: >
+      Sử dụng chính các tài khoản kỹ thuật có sẵn giúp hoạt động của kẻ tấn công hoà lẫn vào thao tác vận hành thường ngày trên máy chủ lịch sử dữ liệu (Historian) và máy trạm kỹ thuật.
+    telemetry_vi: >
+      Cùng một tài khoản vận hành đăng nhập đồng thời ở nhiều phân vùng hoặc thực hiện tác vụ quản trị vào ban đêm.
+    defender_vi: >
+      Tách biệt hoàn toàn miền định danh (Active Directory) của OT khỏi mạng văn phòng IT; áp dụng giám sát hành vi tài khoản đặc quyền (PAM).
+
+  - step_order: 3
+    technique_name: "Remote System Discovery"
+    tactic_hint: "discovery"
+    stage_title_vi: "Dò tìm danh sách thiết bị rơ-le bảo vệ và RTU trong trạm biến áp"
+    plain_vi: >
+      Thành phần dò quét xác định địa chỉ mạng và giao thức truyền thông công nghiệp mà các thiết bị điều khiển đóng cắt trong trạm đang sử dụng.
+    telemetry_vi: >
+      Lưu lượng quét mạng nội bộ phát sinh trong mạng OT — vốn là môi trường có cấu trúc kết nối cố định, hầu như không bao giờ thay đổi tự phát.
+    defender_vi: >
+      Triển khai cảm biến giám sát mạng công nghiệp thụ động (Passive OT IDS) để phát hiện tức thì mọi gói tin quét hoặc kết nối mới ngoài sơ đồ chuẩn.
+
+  - step_order: 4
+    technique_name: "Lateral Tool Transfer"
+    tactic_hint: "lateral-movement"
+    stage_title_vi: "Đưa module giao thức công nghiệp chuyên biệt vào máy chủ điều khiển"
+    plain_vi: >
+      Các thành phần giao tiếp chuẩn điện lực được chuyển tới máy chủ có kết nối trực tiếp với thiết bị đóng cắt tại trạm biến áp.
+    telemetry_vi: >
+      Xuất hiện tệp nhị phân mới hoặc phiên truyền tệp giữa các máy chủ SCADA/HMI ngoài quy trình cập nhật kỹ thuật đã phê duyệt.
+    defender_vi: >
+      Áp dụng danh sách trắng ứng dụng (Application Allowlisting) nghiêm ngặt trên máy chủ SCADA/HMI và khoá chặt quyền ghi thư mục hệ thống.
+
+  - step_order: 5
+    technique_name: "Service Stop"
+    tactic_hint: "inhibit-response-function"
+    stage_title_vi: "Dừng dịch vụ điều khiển chính để chiếm quyền kênh truyền thông"
+    plain_vi: >
+      Mã độc tạm dừng dịch vụ phần mềm SCADA hợp lệ nhằm giải phóng cổng truyền thông và ngăn kỹ sư trực ca can thiệp kịp thời.
+    telemetry_vi: >
+      Dịch vụ phần mềm điều khiển chính dừng đột ngột ngay trước thời điểm phát sinh loạt lệnh đóng cắt bất thường trên đường truyền OT.
+    defender_vi: >
+      Cấu hình cảnh báo tức thời trên màn hình vận hành trung tâm khi dịch vụ điều khiển bị dừng và chuẩn bị sẵn quy trình chuyển sang chế độ điều khiển tay an toàn tại chỗ.
+
+  - step_order: 6
+    technique_name: "Manipulation of Control"
+    tactic_hint: "impact"
+    stage_title_vi: "Phát lệnh mở máy cắt lặp lại gây mất điện diện rộng"
+    plain_vi: >
+      Sử dụng đúng ngôn ngữ giao thức công nghiệp chuẩn, mã độc gửi lệnh mở các máy cắt điện liên tục, gây gián đoạn cung cấp điện tại khu vực phụ tải.
+    telemetry_vi: >
+      Chuỗi lệnh điều khiển đóng/cắt gửi đi với tần suất tự động cao từ máy chủ trung gian mà không gắn với thao tác xác nhận của điều độ viên trên HMI.
+    defender_vi: >
+      Giám sát sâu lệnh điều khiển mức giao thức công nghiệp (Deep Packet Inspection cho IEC-104/DNP3/Modbus), kết hợp khoá liên động vật lý và quy trình khôi phục thủ công đã diễn tập.

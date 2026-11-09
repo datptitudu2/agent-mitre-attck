@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppShell } from '@/components/layout/AppShell'
+import { CasesPage } from '@/pages/CasesPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { MatrixPage } from '@/pages/MatrixPage'
@@ -53,15 +54,7 @@ export function App() {
           <Route element={<ProtectedRoutes />}>
             <Route path="/" element={<DashboardPage />} />
             <Route path="/matrix" element={<MatrixPage />} />
-            <Route
-              path="/cases"
-              element={
-                <PlaceholderShellPage
-                  title="Case Studies & Attack Chain Player"
-                  phaseNote="Sẽ triển khai ở Phase 4."
-                />
-              }
-            />
+            <Route path="/cases" element={<CasesPage />} />
             <Route
               path="/learn"
               element={
