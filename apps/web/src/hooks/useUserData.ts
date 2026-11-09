@@ -243,3 +243,58 @@ export function useCoverageLayers(domain?: AttackDomain) {
 
   return { layers: query.data ?? [], isLoading: query.isLoading, saveLayer, deleteLayer }
 }
+
+
+export interface QuizAttemptRecord {
+  id: string
+  user_id: string
+  quiz_slug: string
+  score: number
+  total: number
+  answers: Record<string, number>
+  created_at: string
+}
+
+export function useQuizAttempts() {
+  const user = useAuthStore((s) => s.profile)
+  const qc = useQueryClient()
+
+  const query = useQuery({
+    queryKey: ['quiz_attempts', user?.id],
+    enabled: Boolean(user && supabase),
+    queryFn: async () => {
+      if (!supabase || !user) return [] as QuizAttemptRecord[]
+      const { data, error } = await supabase
+        .from('quiz_attempts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return (data ?? []) as QuizAttemptRecord[]
+    },
+  })
+
+  const submitQuiz = useMutation({
+    mutationFn: async (payload: {
+      quizSlug: string
+      score: number
+      total: number
+      answers: Record<string, number>
+    }) => {
+      if (!supabase || !user) throw new Error('Chưa đăng nhập')
+      const { error } = await supabase.from('quiz_attempts').insert({
+        user_id: user.id,
+        quiz_slug: payload.quizSlug,
+        score: payload.score,
+        total: payload.total,
+        answers: payload.answers,
+      })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['quiz_attempts', user?.id] })
+    },
+  })
+
+  return { attempts: query.data ?? [], submitQuiz }
+}

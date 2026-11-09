@@ -4,9 +4,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppShell } from '@/components/layout/AppShell'
 import { CasesPage } from '@/pages/CasesPage'
 import { DashboardPage } from '@/pages/DashboardPage'
+import { LearnPage } from '@/pages/LearnPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { MatrixPage } from '@/pages/MatrixPage'
 import { PlaceholderShellPage } from '@/pages/PlaceholderShellPage'
+import { WhatsNewPage } from '@/pages/WhatsNewPage'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 const queryClient = new QueryClient({
@@ -55,15 +57,7 @@ export function App() {
             <Route path="/" element={<DashboardPage />} />
             <Route path="/matrix" element={<MatrixPage />} />
             <Route path="/cases" element={<CasesPage />} />
-            <Route
-              path="/learn"
-              element={
-                <PlaceholderShellPage
-                  title="Learning Path"
-                  phaseNote="Sẽ triển khai ở Phase 5."
-                />
-              }
-            />
+            <Route path="/learn" element={<LearnPage />} />
             <Route
               path="/coverage"
               element={
@@ -82,15 +76,7 @@ export function App() {
                 />
               }
             />
-            <Route
-              path="/whats-new"
-              element={
-                <PlaceholderShellPage
-                  title="Có gì mới giữa các phiên bản"
-                  phaseNote="Sẽ triển khai ở Phase 5."
-                />
-              }
-            />
+            <Route path="/whats-new" element={<WhatsNewPage />} />
             <Route
               path="/admin"
               element={

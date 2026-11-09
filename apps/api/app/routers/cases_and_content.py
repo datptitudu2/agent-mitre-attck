@@ -498,3 +498,126 @@ async def get_case_study_detail(
         "steps": enriched_steps,
         "navigator_layer": navigator_layer,
     }
+
+
+LESSONS_DIR = REPO_ROOT / "content" / "lessons"
+QUIZZES_FILE = REPO_ROOT / "content" / "quizzes" / "quizzes.yaml"
+GLOSSARY_FILE = REPO_ROOT / "content" / "glossary.yaml"
+
+
+def load_lesson_markdown_files() -> List[Dict[str, Any]]:
+    """Đọc các tệp bài học Markdown kèm frontmatter YAML trong content/lessons/."""
+    if not LESSONS_DIR.exists():
+        return []
+    lessons: List[Dict[str, Any]] = []
+    for path in sorted(LESSONS_DIR.glob("*.md")):
+        raw_text = path.read_text(encoding="utf-8")
+        meta: Dict[str, Any] = {}
+        body_md = raw_text
+        if raw_text.startswith("---"):
+            parts = raw_text.split("---", 2)
+            if len(parts) >= 3:
+                meta = yaml.safe_load(parts[1]) or {}
+                body_md = parts[2].strip()
+        lessons.append(
+            {
+                "_file": path.name,
+                "slug": meta.get("slug", path.stem),
+                "order": int(meta.get("order", 99)),
+                "title": meta.get("title", path.stem),
+                "reading_minutes": int(meta.get("reading_minutes", 4)),
+                "badge_label": meta.get("badge_label", "Bài học"),
+                "try_technique_name": meta.get("try_technique_name", ""),
+                "try_domain": meta.get("try_domain", "enterprise-attack"),
+                "interactive_widget": meta.get("interactive_widget", "none"),
+                "body_md": body_md,
+            }
+        )
+    lessons.sort(key=lambda x: x["order"])
+    return lessons
+
+
+def load_quizzes_map() -> Dict[str, List[Dict[str, Any]]]:
+    if not QUIZZES_FILE.exists():
+        return {}
+    data = yaml.safe_load(QUIZZES_FILE.read_text(encoding="utf-8")) or {}
+    return data.get("quizzes") or {}
+
+
+def load_glossary_terms() -> List[Dict[str, Any]]:
+    if not GLOSSARY_FILE.exists():
+        return []
+    data = yaml.safe_load(GLOSSARY_FILE.read_text(encoding="utf-8")) or {}
+    return data.get("terms") or []
+
+
+@router.get("/lessons")
+async def get_learning_curriculum(
+    _user: AuthenticatedUser = Depends(get_current_user),
+    db: SupabaseDataClient = Depends(get_db_client),
+) -> Dict[str, Any]:
+    """Trả về trọn bộ Lộ trình học (8 bài Markdown + Mini Quiz + Glossary + Technique mẫu tra cứu động)."""
+    lessons = load_lesson_markdown_files()
+    quizzes_map = load_quizzes_map()
+    glossary = load_glossary_terms()
+
+    wanted_names = list(
+        {
+            (l.get("try_technique_name") or "").strip().lower()
+            for l in lessons
+            if l.get("try_technique_name")
+        }
+    )
+
+    tech_lookup: Dict[tuple, Dict[str, Any]] = {}
+    if wanted_names:
+        rows = await db.fetch_all_sql(
+            """
+            select domain, attack_id, name, tactics, revoked, deprecated, replaced_by_attack_id
+            from public.attack_objects
+            where type = 'attack-pattern'
+              and lower(name) = any(%s)
+            order by (revoked or deprecated) asc, is_subtechnique asc;
+            """,
+            (wanted_names,),
+        )
+        for r in rows:
+            key = (r["domain"], r["name"].lower())
+            if key not in tech_lookup:
+                tech_lookup[key] = r
+
+    enriched_lessons: List[Dict[str, Any]] = []
+    for l in lessons:
+        tname = (l.get("try_technique_name") or "").strip()
+        tdom = l.get("try_domain", "enterprise-attack")
+        resolved_tech = tech_lookup.get((tdom, tname.lower()))
+        enriched_lessons.append(
+            {
+                "slug": l["slug"],
+                "order": l["order"],
+                "title": l["title"],
+                "reading_minutes": l["reading_minutes"],
+                "badge_label": l["badge_label"],
+                "interactive_widget": l["interactive_widget"],
+                "body_md": l["body_md"],
+                "try_technique": (
+                    {
+                        "domain": resolved_tech["domain"],
+                        "attack_id": resolved_tech["attack_id"],
+                        "name": resolved_tech["name"],
+                        "tactics": resolved_tech["tactics"],
+                        "revoked": resolved_tech["revoked"],
+                        "deprecated": resolved_tech["deprecated"],
+                    }
+                    if resolved_tech
+                    else None
+                ),
+                "quiz": quizzes_map.get(l["slug"], []),
+            }
+        )
+
+    return {
+        "count": len(enriched_lessons),
+        "lessons": enriched_lessons,
+        "glossary": glossary,
+    }

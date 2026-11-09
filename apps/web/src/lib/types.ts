@@ -265,3 +265,74 @@ export interface CaseStudyDetail {
   steps: CaseStudyStep[]
   navigator_layer: Record<string, unknown>
 }
+
+
+export interface GlossaryTerm {
+  key: string
+  term: string
+  vi_short: string
+  definition_vi: string
+  example_vi: string
+}
+
+export interface QuizQuestion {
+  id: string
+  question: string
+  options: string[]
+  correct_index: number
+  explanation_vi: string
+}
+
+export interface LessonItem {
+  slug: string
+  order: number
+  title: string
+  reading_minutes: number
+  badge_label: string
+  interactive_widget: 'pyramid' | 'hierarchy' | 'det-tree' | 'version-slider' | 'none'
+  body_md: string
+  try_technique: {
+    domain: AttackDomain
+    attack_id: string
+    name: string
+    tactics: string[]
+    revoked: boolean
+    deprecated: boolean
+  } | null
+  quiz: QuizQuestion[]
+}
+
+export interface CurriculumResponse {
+  count: number
+  lessons: LessonItem[]
+  glossary: GlossaryTerm[]
+}
+
+export interface DiffChangeItem {
+  stix_id: string
+  type: string
+  attack_id: string
+  name: string
+  is_subtechnique?: boolean
+  replaced_by_attack_id?: string | null
+  previous_name?: string
+}
+
+export interface VersionDiffResponse {
+  domain: AttackDomain
+  from_version: string
+  to_version: string
+  available_versions: string[]
+  counts: {
+    added: number
+    modified: number
+    deprecated: number
+    revoked: number
+    removed: number
+  }
+  added: DiffChangeItem[]
+  modified: DiffChangeItem[]
+  deprecated: DiffChangeItem[]
+  revoked: DiffChangeItem[]
+  removed: DiffChangeItem[]
+}

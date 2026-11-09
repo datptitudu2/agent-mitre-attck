@@ -1,0 +1,93 @@
+terms:
+  - key: "tactic"
+    term: "Tactic"
+    vi_short: "Mục tiêu chiến thuật (Tại sao?)"
+    definition_vi: >
+      Trả lời câu hỏi "Kẻ tấn công đang muốn đạt được mục tiêu gì ở giai đoạn này?"
+      (ví dụ: Xâm nhập ban đầu, Ẩn mình, Vô hiệu hoá phòng thủ, Đánh cắp mật khẩu, Rút dữ liệu).
+      Trong Enterprise ATT&CK v19+, có 15 cột Tactic trên ma trận.
+    example_vi: "Initial Access (TA0001), Stealth (TA0005), Defense Impairment (TA0112)."
+
+  - key: "technique"
+    term: "Technique"
+    vi_short: "Kỹ thuật thực hiện (Bằng cách nào?)"
+    definition_vi: >
+      Trả lời câu hỏi "Kẻ tấn công làm cách nào để đạt được Tactic đó?". Mỗi Technique có mã Txxxx
+      và có thể thuộc một hoặc nhiều Tactic khác nhau.
+    example_vi: "Phishing (T1566) hoặc Direct Prompt Injection (T1699)."
+
+  - key: "sub-technique"
+    term: "Sub-technique"
+    vi_short: "Kỹ thuật nhánh chi tiết (Txxxx.yyy)"
+    definition_vi: >
+      Mô tả biến thể cụ thể hơn bên dưới một Technique cha, có định dạng mã Txxxx.001, Txxxx.002...
+      Giúp đội phòng thủ viết quy tắc phát hiện sát với cơ chế kỹ thuật thực tế thay vì quá chung chung.
+    example_vi: "Spearphishing Attachment (T1566.001) là Sub-technique của Phishing (T1566)."
+
+  - key: "procedure"
+    term: "Procedure"
+    vi_short: "Cách triển khai thực tế ngoài đời"
+    definition_vi: >
+      Cách thức cụ thể mà một Nhóm tấn công (Group), Phần mềm độc hại (Software) hay Chiến dịch (Campaign)
+      áp dụng một Technique trong sự cố có thật.
+    example_vi: "Cách APT32 dùng Mshta để nạp dữ liệu cấu hình mã hoá trong chiến dịch thực tế."
+
+  - key: "stealth"
+    term: "Stealth"
+    vi_short: "Ẩn mình & Che giấu dấu vết (TA0005 - từ v19)"
+    definition_vi: >
+      Một trong hai Tactic tách ra từ Defense Evasion cũ kể từ ATT&CK v19 (04/2026).
+      Tập trung vào hành vi hoà lẫn vào hoạt động bình thường, giả mạo tên tệp, mã hoá hoặc xoá dấu vết để không bị chú ý.
+    example_vi: "Masquerading, Fileless Storage, Timestomp."
+
+  - key: "defense-impairment"
+    term: "Defense Impairment"
+    vi_short: "Vô hiệu hoá & Làm mù Phòng thủ (TA0112 - từ v19)"
+    definition_vi: >
+      Tactic thứ hai tách ra từ Defense Evasion cũ kể từ ATT&CK v19 (04/2026).
+      Tập trung vào hành vi chủ động tắt, phá hoại, sửa cấu hình hoặc làm nhiễu công cụ bảo mật (EDR, Firewall, Event Log, AI SOC).
+    example_vi: "Disable or Modify Tools (T1685), Clear Windows Event Logs (T1685.005), Impair Autonomous Defenses (T1685.007)."
+
+  - key: "detection-strategy"
+    term: "Detection Strategy"
+    vi_short: "Chiến lược phát hiện cấp cao (DETxxxx - từ v18)"
+    definition_vi: >
+      Đưa vào từ ATT&CK v18 (10/2025) để thay thế mục Detections dạng văn bản cũ.
+      Mô tả ý tưởng và phương hướng phát hiện một Technique một cách độc lập với nhà cung cấp công cụ.
+    example_vi: "Một Detection Strategy có thể bao gồm nhiều Analytic cho Windows, Linux và Cloud."
+
+  - key: "analytic"
+    term: "Analytic"
+    vi_short: "Logic phát hiện theo nền tảng (ANxxxx - từ v18)"
+    definition_vi: >
+      Thành phần con bên trong Detection Strategy, chỉ rõ hành vi cần tìm trên từng nền tảng cụ thể
+      (Windows, Linux, macOS, SaaS...), các nguồn log cần kết hợp và các tham số cần tinh chỉnh (Mutable Elements).
+    example_vi: "ANxxxx kiểm tra tiến trình văn phòng sinh tiến trình dòng lệnh kèm kết nối mạng."
+
+  - key: "data-component"
+    term: "Data Component"
+    vi_short: "Thành phần dữ liệu log / Telemetry (DCxxxx)"
+    definition_vi: >
+      Đơn vị dữ liệu nhật ký cụ thể mà đội phòng thủ cần thu thập về SIEM/Data Lake để một Analytic có thể chạy được.
+    example_vi: "Process Creation (DC0032), Windows Registry Key Modification, Application Log Content."
+
+  - key: "group"
+    term: "Group"
+    vi_short: "Nhóm tấn công có chủ đích (Gxxxx)"
+    definition_vi: >
+      Tập hợp hoạt động tấn công được cộng đồng tình báo mối đe doạ theo dõi dưới một định danh chung (ví dụ APT29, APT32, Lazarus Group).
+    example_vi: "APT32 (G0050) với bí danh OceanLotus."
+
+  - key: "campaign"
+    term: "Campaign"
+    vi_short: "Chiến dịch tấn công cụ thể (Cxxxx)"
+    definition_vi: >
+      Một đợt hoặc chuỗi hoạt động xâm nhập diễn ra trong khoảng thời gian và mục tiêu xác định (có thể đã quy gán hoặc chưa quy gán cho Group nào).
+    example_vi: "SolarWinds Compromise, Operation Dream Job, 2016 Ukraine Electric Power Attack."
+
+  - key: "mitigation"
+    term: "Mitigation"
+    vi_short: "Biện pháp giảm thiểu / Phòng ngừa (Mxxxx)"
+    definition_vi: >
+      Cấu hình bảo mật, kiến trúc hoặc chính sách giúp ngăn chặn hoặc thu hẹp khả năng thành công của một Technique ngay từ đầu.
+    example_vi: "Multi-factor Authentication, Network Segmentation, Execution Prevention."

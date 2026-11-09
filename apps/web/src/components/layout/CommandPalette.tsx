@@ -13,7 +13,7 @@ import {
   X,
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
-import type { SearchResultItem } from '@/lib/types'
+import type { CurriculumResponse, SearchResultItem } from '@/lib/types'
 import { useUiStore } from '@/stores/useUiStore'
 
 export function CommandPalette() {
@@ -48,6 +48,19 @@ export function CommandPalette() {
         `/api/search?q=${encodeURIComponent(debounced)}&include_deprecated=true&limit=20`,
       ),
   })
+
+  const { data: curriculumData } = useQuery({
+    queryKey: ['curriculum'],
+    enabled: commandPaletteOpen,
+    queryFn: () => apiFetch<CurriculumResponse>('/api/lessons'),
+  })
+
+  const matchedLessons = (curriculumData?.lessons ?? []).filter(
+    (l) =>
+      !debounced ||
+      l.title.toLowerCase().includes(debounced.toLowerCase()) ||
+      l.badge_label.toLowerCase().includes(debounced.toLowerCase()),
+  )
 
   if (!commandPaletteOpen) return null
 
@@ -89,10 +102,38 @@ export function CommandPalette() {
           </div>
 
           <Command.List className="max-h-96 overflow-y-auto p-2">
-            {debounced.length > 0 && (data?.results ?? []).length === 0 && (
-              <Command.Empty className="py-8 text-center text-xs text-slate-500">
-                Không tìm thấy đối tượng phù hợp với &ldquo;{debounced}&rdquo;.
-              </Command.Empty>
+            {debounced.length > 0 &&
+              (data?.results ?? []).length === 0 &&
+              matchedLessons.length === 0 && (
+                <Command.Empty className="py-8 text-center text-xs text-slate-500">
+                  Không tìm thấy đối tượng phù hợp với &ldquo;{debounced}&rdquo;.
+                </Command.Empty>
+              )}
+
+            {matchedLessons.length > 0 && debounced.length > 0 && (
+              <Command.Group
+                heading="Bài học trong Learning Path"
+                className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
+              >
+                {matchedLessons.map((l) => (
+                  <Command.Item
+                    key={l.slug}
+                    value={`lesson ${l.title}`}
+                    onSelect={() =>
+                      runAndClose(() => navigate(`/learn?lesson=${encodeURIComponent(l.slug)}`))
+                    }
+                    className="flex cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 aria-selected:bg-cyan-500/15"
+                  >
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="h-3.5 w-3.5 text-cyan-500" />
+                      <span>
+                        Bài {l.order}: {l.title}
+                      </span>
+                    </div>
+                    <span className="font-mono text-[10px] text-slate-400">{l.reading_minutes}p</span>
+                  </Command.Item>
+                ))}
+              </Command.Group>
             )}
 
             {(data?.results ?? []).length > 0 && (

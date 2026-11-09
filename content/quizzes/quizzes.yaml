@@ -1,0 +1,128 @@
+quizzes:
+  what-is-attack:
+    - id: "q1"
+      question: "Theo Kim tự tháp Nỗi đau (Pyramid of Pain), khi đội phòng thủ xây dựng khả năng phát hiện ở tầng nào thì kẻ tấn công khó thay đổi và tốn chi phí nhất?"
+      options:
+        - "Mã băm tệp tin (File Hash SHA-256 / MD5)"
+        - "Địa chỉ IP và tên miền máy chủ điều khiển"
+        - "Hành vi chiến thuật và kỹ thuật (TTPs — đối tượng trọng tâm của MITRE ATT&CK)"
+        - "Tên tệp thực thi tải về máy"
+      correct_index: 2
+      explanation_vi: "IP hay Hash có thể đổi tự động trong vài giây, còn thay đổi hành vi tác chiến (TTPs) buộc kẻ tấn công phải thiết kế lại công cụ và quy trình."
+
+    - id: "q2"
+      question: "Ba ma trận lĩnh vực (Domains) chính thức được đồng bộ trong ATT&CK Lab là gì?"
+      options:
+        - "Web, Network và Endpoint"
+        - "Enterprise, Mobile và ICS (Industrial Control Systems)"
+        - "Windows, Linux và macOS"
+        - "Red Team, Blue Team và Purple Team"
+      correct_index: 1
+      explanation_vi: "MITRE ATT&CK chia thành 3 domain chính: Enterprise (CNTT/Cloud/AI), Mobile (di động) và ICS (hệ thống điều khiển công nghiệp OT)."
+
+  tactics-techniques-subtechniques:
+    - id: "q1"
+      question: "Trong cấu trúc MITRE ATT&CK, cặp ánh xạ câu hỏi nào sau đây là ĐÚNG?"
+      options:
+        - "Tactic trả lời 'Tại sao (Mục tiêu)?' — Technique trả lời 'Bằng cách nào?'"
+        - "Tactic trả lời 'Dùng phần mềm gì?' — Technique trả lời 'Ai tấn công?'"
+        - "Một Technique chỉ được phép thuộc duy nhất một Tactic cố định"
+        - "Kẻ tấn công luôn phải thực hiện lần lượt đủ mọi cột Tactic từ trái sang phải"
+      correct_index: 0
+      explanation_vi: "Tactic thể hiện mục tiêu chiến thuật (Why), còn Technique/Sub-technique thể hiện phương thức kỹ thuật để đạt mục tiêu đó (How)."
+
+    - id: "q2"
+      question: "Lợi ích lớn nhất của Sub-technique (ví dụ T1566.001) đối với người làm phòng thủ là gì?"
+      options:
+        - "Để tăng số lượng ô trên ma trận cho đẹp"
+        - "Thu hẹp biến thể kỹ thuật cụ thể, giúp xác định đúng nguồn log và logic phát hiện sát thực tế"
+        - "Thay thế hoàn toàn nhu cầu dùng Mitigation"
+        - "Chỉ dành riêng cho hệ điều hành di động"
+      correct_index: 1
+      explanation_vi: "Sub-technique mô tả cơ chế chuyên sâu bên dưới Technique cha, giúp kỹ sư SOC biết rõ kênh telemetry cần giám sát."
+
+  procedures-real-world:
+    - id: "q1"
+      question: "Trong dữ liệu STIX 2.1 của MITRE ATT&CK, 'Procedure Examples' được trích xuất từ đâu?"
+      options:
+        - "Từ các mối quan hệ 'uses' mô tả cách Group, Software hoặc Campaign thực sự áp dụng Technique đó ngoài đời"
+        - "Từ các câu hỏi trắc nghiệm giả định"
+        - "Chỉ lấy từ hướng dẫn cấu hình tường lửa của nhà sản xuất"
+        - "Từ danh sách lỗ hổng CVE chưa được vá"
+      correct_index: 0
+      explanation_vi: "Mỗi mối quan hệ 'uses' nối từ Group/Software/Campaign sang Technique ghi lại cách hành vi đó xuất hiện trong các chiến dịch thực tế."
+
+  groups-software-campaigns:
+    - id: "q1"
+      question: "Vì sao MITRE ATT&CK bổ sung đối tượng Campaign (Cxxxx) bên cạnh Group (Gxxxx)?"
+      options:
+        - "Vì MITRE đã bỏ hoàn toàn đối tượng Group"
+        - "Để mô tả một đợt tấn công xác định theo thời gian/mục tiêu ngay cả khi chưa thể quy gán chắc chắn cho Group nào"
+        - "Campaign chỉ dùng để lưu danh sách phần mềm diệt virus"
+        - "Campaign là tên gọi mới của Sub-technique"
+      correct_index: 1
+      explanation_vi: "Campaign giúp nhóm các hoạt động của một chiến dịch cụ thể (như SolarWinds Compromise) một cách chính xác theo mốc thời gian dù đã hay chưa quy gán tác nhân."
+
+  mitigations-defense:
+    - id: "q1"
+      question: "Vai trò khác biệt cốt lõi giữa Mitigation (Mxxxx) và Detection Strategy (DETxxxx) là gì?"
+      options:
+        - "Mitigation giúp ngăn chặn hoặc thu hẹp khả năng thực hiện kỹ thuật ngay từ kiến trúc/cấu hình; Detection giúp phát hiện khi hành vi xảy ra"
+        - "Mitigation chỉ áp dụng sau khi toàn bộ dữ liệu đã bị mã hoá"
+        - "Hai khái niệm này hoàn toàn giống hệt nhau"
+        - "Mitigation chỉ dành cho mạng ICS, không có trong Enterprise"
+      correct_index: 0
+      explanation_vi: "Phòng thủ chiều sâu cần kết hợp cả hai: Mitigation giảm bề mặt tấn công chủ động, còn Detection phát hiện sớm những hành vi lọt qua."
+
+  detection-strategy-v18:
+    - id: "q1"
+      question: "Từ ATT&CK v18+, thứ tự liên kết từ tổng quát đến nguồn log cụ thể trong mô hình phát hiện mới là gì?"
+      options:
+        - "Data Source → Tactic → Group"
+        - "Detection Strategy (DET) → Analytic (AN) → Data Component (DC)"
+        - "Mitigation → Campaign → Sub-technique"
+        - "Event ID → Firewall → Antivirus"
+      correct_index: 1
+      explanation_vi: "Detection Strategy định hướng phát hiện chung, triển khai thành các Analytic theo từng nền tảng và trỏ trực tiếp tới các Data Component cần thu thập."
+
+    - id: "q2"
+      question: "Trường 'Mutable Elements' bên trong một Analytic (ANxxxx) có ý nghĩa gì cho kỹ sư SOC?"
+      options:
+        - "Các tham số phụ thuộc môi trường từng tổ chức (như tài khoản dịch vụ hợp lệ, ngưỡng thời gian) cần tinh chỉnh để giảm cảnh báo giả"
+        - "Danh sách các tệp không bao giờ được phép đọc"
+        - "Phiên bản của trình duyệt người dùng"
+        - "Mã màu giao diện trên ma trận"
+      correct_index: 0
+      explanation_vi: "Mutable Elements chỉ ra đúng các biến số cần hiệu chỉnh (tuning) theo đặc thù hạ tầng nội bộ của bạn."
+
+  evolution-v18-v19-v20:
+    - id: "q1"
+      question: "Sự thay đổi lớn nào ở ATT&CK v19 (04/2026) đã đưa số lượng Tactic của Enterprise từ 14 lên 15?"
+      options:
+        - "Gộp Initial Access và Execution làm một"
+        - "Tách Defense Evasion cũ thành hai Tactic riêng: Stealth (Ẩn mình) và Defense Impairment (Vô hiệu hoá phòng thủ)"
+        - "Thêm cột Tactic mang tên Antivirus"
+        - "Chuyển toàn bộ Mobile sang Enterprise"
+      correct_index: 1
+      explanation_vi: "Defense Evasion được tách đôi thành Stealth (TA0005 — che giấu dấu vết) và Defense Impairment (TA0112 — làm suy yếu công cụ bảo vệ), nâng tổng số lên 15 Tactics."
+
+    - id: "q2"
+      question: "Điểm nhấn nổi bật được bổ sung trong ATT&CK v20 (10/2026) cho ma trận Enterprise là gì?"
+      options:
+        - "Quay trở lại dùng 10 Tactics như năm 2015"
+        - "Đưa vào nhóm kỹ thuật tập trung vào AI (Direct/Indirect Prompt Injection, AI Result Poisoning, Impair Autonomous Defenses, AI-Enabled Exfiltration)"
+        - "Xoá bỏ toàn bộ Detection Strategies"
+        - "Ngừng hỗ trợ định dạng STIX 2.1"
+      correct_index: 1
+      explanation_vi: "ATT&CK v20 chính thức bổ sung các kỹ thuật nhắm vào hệ thống AI doanh nghiệp cùng các Detection Strategies tương ứng."
+
+  applying-attack-in-soc:
+    - id: "q1"
+      question: "Cách tiếp cận nào sau đây được khuyến nghị khi xây dựng độ phủ (Coverage) dựa trên ATT&CK?"
+      options:
+        - "Cố gắng viết cảnh báo cho 100% kỹ thuật của cả những hệ điều hành tổ chức không sử dụng"
+        - "Lọc theo nền tảng thực tế của tổ chức và ưu tiên các Technique có tần suất xuất hiện cao trong các Group/Campaign liên quan"
+        - "Chỉ viết cảnh báo cho cột Reconnaissance rồi dừng lại"
+        - "Bật toàn bộ rule mặc định mà không bao giờ kiểm thử hay tinh chỉnh"
+      correct_index: 1
+      explanation_vi: "Threat-Informed Defense tập trung nguồn lực vào giao điểm giữa hạ tầng thực tế của bạn và các kỹ thuật kẻ tấn công sử dụng phổ biến nhất."
