@@ -343,7 +343,8 @@ declare
 begin
   -- Chỉ cho phép service_role (auth.uid() is null khi gọi bằng service key) hoặc admin
   if current_setting('request.jwt.claim.role', true) is distinct from 'service_role'
-     and session_user not in ('postgres', 'supabase_admin')
+     and session_user not like 'postgres%'
+     and session_user <> 'supabase_admin'
      and not public.is_admin() then
     raise exception 'Chi Admin hoac Service Role moi duoc xem thong ke dung luong DB.'
       using errcode = '42501';

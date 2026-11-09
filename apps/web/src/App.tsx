@@ -2,12 +2,14 @@ import { useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AppShell } from '@/components/layout/AppShell'
+import { AdminPage } from '@/pages/AdminPage'
 import { CasesPage } from '@/pages/CasesPage'
+import { CoveragePage } from '@/pages/CoveragePage'
 import { DashboardPage } from '@/pages/DashboardPage'
+import { ExplorerPage } from '@/pages/ExplorerPage'
 import { LearnPage } from '@/pages/LearnPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { MatrixPage } from '@/pages/MatrixPage'
-import { PlaceholderShellPage } from '@/pages/PlaceholderShellPage'
 import { WhatsNewPage } from '@/pages/WhatsNewPage'
 import { useAuthStore } from '@/stores/useAuthStore'
 
@@ -58,34 +60,10 @@ export function App() {
             <Route path="/matrix" element={<MatrixPage />} />
             <Route path="/cases" element={<CasesPage />} />
             <Route path="/learn" element={<LearnPage />} />
-            <Route
-              path="/coverage"
-              element={
-                <PlaceholderShellPage
-                  title="Coverage Lab"
-                  phaseNote="Sẽ triển khai ở Phase 6."
-                />
-              }
-            />
-            <Route
-              path="/explorer"
-              element={
-                <PlaceholderShellPage
-                  title="Groups, Software & Campaigns"
-                  phaseNote="Sẽ triển khai ở Phase 6."
-                />
-              }
-            />
+            <Route path="/coverage" element={<CoveragePage />} />
+            <Route path="/explorer" element={<ExplorerPage />} />
             <Route path="/whats-new" element={<WhatsNewPage />} />
-            <Route
-              path="/admin"
-              element={
-                <PlaceholderShellPage
-                  title="Quản trị Đồng bộ & Sức khoẻ Nội dung"
-                  phaseNote="Sẽ triển khai ở Phase 6."
-                />
-              }
-            />
+            <Route path="/admin" element={<AdminPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

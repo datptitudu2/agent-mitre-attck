@@ -8,7 +8,9 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 import yaml
 
-from apps.api.app.auth import AuthenticatedUser, get_current_user
+from pydantic import BaseModel, Field
+
+from apps.api.app.auth import AuthenticatedUser, get_current_user, require_admin
 from apps.api.app.db import SupabaseDataClient, get_db_client
 
 logger = logging.getLogger("attack_lab.routers.cases")
@@ -621,3 +623,205 @@ async def get_learning_curriculum(
         "lessons": enriched_lessons,
         "glossary": glossary,
     }
+
+
+
+class AllowlistUpsertRequest(BaseModel):
+    email: str = Field(..., min_length=5, max_length=254)
+    role: str = Field(default="member", pattern="^(admin|member)$")
+    note: str = Field(default="", max_length=300)
+
+
+@router.get("/admin/health")
+async def get_admin_content_and_db_health(
+    _admin: AuthenticatedUser = Depends(require_admin),
+    db: SupabaseDataClient = Depends(get_db_client),
+) -> Dict[str, Any]:
+    """Kiểm tra sức khoẻ nội dung (Case Studies & Lessons có trỏ vào technique bị deprecated/revoked không) + dung lượng DB + allowlist."""
+    cases = load_case_yaml_files()
+    lessons = load_lesson_markdown_files()
+
+    # Gom toàn bộ tham chiếu technique từ Cases + Lessons
+    refs_to_check: List[Dict[str, str]] = []
+    for c in cases:
+        dom = c.get("domain", "enterprise-attack")
+        for s in c.get("steps") or []:
+            tname = (s.get("technique_name") or "").strip()
+            if tname:
+                refs_to_check.append(
+                    {
+                        "source_kind": "case",
+                        "source_slug": c.get("slug", ""),
+                        "source_title": c.get("title", ""),
+                        "domain": dom,
+                        "technique_ref": tname,
+                    }
+                )
+    for l in lessons:
+        tname = (l.get("try_technique_name") or "").strip()
+        if tname:
+            refs_to_check.append(
+                {
+                    "source_kind": "lesson",
+                    "source_slug": l["slug"],
+                    "source_title": l["title"],
+                    "domain": l.get("try_domain", "enterprise-attack"),
+                    "technique_ref": tname,
+                }
+            )
+
+    wanted_lower = list({r["technique_ref"].lower() for r in refs_to_check})
+    wanted_upper = list({r["technique_ref"].upper() for r in refs_to_check})
+
+    rows = await db.fetch_all_sql(
+        """
+        select domain, attack_id, name, revoked, deprecated, replaced_by_attack_id
+        from public.attack_objects
+        where type = 'attack-pattern'
+          and (lower(name) = any(%s) or upper(attack_id) = any(%s))
+        order by (revoked or deprecated) asc;
+        """,
+        (wanted_lower, wanted_upper),
+    )
+
+    by_dom_name: Dict[tuple, Dict[str, Any]] = {}
+    by_dom_id: Dict[tuple, Dict[str, Any]] = {}
+    for r in rows:
+        kn = (r["domain"], r["name"].lower())
+        ki = (r["domain"], r["attack_id"].upper())
+        if kn not in by_dom_name:
+            by_dom_name[kn] = r
+        if ki not in by_dom_id:
+            by_dom_id[ki] = r
+
+    issues: List[Dict[str, Any]] = []
+    healthy_count = 0
+    for item in refs_to_check:
+        dom = item["domain"]
+        ref = item["technique_ref"]
+        matched = by_dom_id.get((dom, ref.upper())) or by_dom_name.get((dom, ref.lower()))
+        if not matched:
+            issues.append(
+                {
+                    **item,
+                    "issue_type": "not_found",
+                    "attack_id": None,
+                    "replaced_by_attack_id": None,
+                    "message": f"Không tìm thấy technique '{ref}' trong {dom}.",
+                }
+            )
+        elif matched["revoked"] or matched["deprecated"]:
+            issues.append(
+                {
+                    **item,
+                    "issue_type": "revoked" if matched["revoked"] else "deprecated",
+                    "attack_id": matched["attack_id"],
+                    "replaced_by_attack_id": matched["replaced_by_attack_id"],
+                    "message": (
+                        f"Technique {matched['attack_id']} ({matched['name']}) đã "
+                        f"{'revoked' if matched['revoked'] else 'deprecated'}"
+                        + (
+                            f" → thay bằng {matched['replaced_by_attack_id']}"
+                            if matched["replaced_by_attack_id"]
+                            else ""
+                        )
+                    ),
+                }
+            )
+        else:
+            healthy_count += 1
+
+    # Dung lượng DB thực tế (đọc trực tiếp pg_database_size & pg_total_relation_size ở tầng Backend đã qua require_admin)
+    size_row = await db.fetch_one_sql(
+        """
+        select jsonb_build_object(
+          'database_bytes', pg_database_size(current_database()),
+          'database_pretty', pg_size_pretty(pg_database_size(current_database())),
+          'limit_bytes', 524288000,
+          'tables', (
+            select coalesce(
+              jsonb_object_agg(
+                c.relname,
+                jsonb_build_object(
+                  'bytes', pg_total_relation_size(c.oid),
+                  'pretty', pg_size_pretty(pg_total_relation_size(c.oid))
+                )
+              ),
+              '{}'::jsonb
+            )
+            from pg_class c
+            join pg_namespace n on n.oid = c.relnamespace
+            where n.nspname = 'public' and c.relkind = 'r'
+          )
+        ) as stats;
+        """
+    )
+    db_storage = (size_row or {}).get("stats") or {}
+
+    allowlist_rows = await db.fetch_all_sql(
+        """
+        select email, role, note, added_at as created_at
+        from public.allowed_emails
+        order by role asc, added_at asc;
+        """
+    )
+
+    return {
+        "content_health": {
+            "total_references": len(refs_to_check),
+            "healthy_count": healthy_count,
+            "issue_count": len(issues),
+            "cases_checked": len(cases),
+            "lessons_checked": len(lessons),
+            "issues": issues,
+        },
+        "db_storage": db_storage,
+        "allowed_emails": allowlist_rows,
+    }
+
+
+@router.post("/admin/allowlist")
+async def upsert_allowed_email(
+    body: AllowlistUpsertRequest,
+    admin_user: AuthenticatedUser = Depends(require_admin),
+    db: SupabaseDataClient = Depends(get_db_client),
+) -> Dict[str, Any]:
+    normalized = body.email.strip().lower()
+    if "@" not in normalized:
+        raise HTTPException(status_code=400, detail="Địa chỉ email không hợp lệ.")
+    if normalized == admin_user.email.lower() and body.role != "admin":
+        raise HTTPException(
+            status_code=400,
+            detail="Không thể tự hạ quyền admin của chính tài khoản đang đăng nhập.",
+        )
+
+    await db.execute_sql(
+        """
+        insert into public.allowed_emails (email, role, note)
+        values (%s, %s, %s)
+        on conflict (email) do update set
+          role = excluded.role,
+          note = excluded.note;
+        """,
+        (normalized, body.role, body.note.strip()),
+    )
+    return {"status": "ok", "email": normalized, "role": body.role}
+
+
+@router.delete("/admin/allowlist/{email}")
+async def remove_allowed_email(
+    email: str,
+    admin_user: AuthenticatedUser = Depends(require_admin),
+    db: SupabaseDataClient = Depends(get_db_client),
+) -> Dict[str, Any]:
+    normalized = email.strip().lower()
+    if normalized == admin_user.email.lower():
+        raise HTTPException(
+            status_code=400,
+            detail="Không thể tự xoá email admin đang đăng nhập khỏi allowlist.",
+        )
+    await db.execute_sql(
+        "delete from public.allowed_emails where lower(email) = %s;",
+        (normalized,),
+    )
+    return {"status": "deleted", "email": normalized}

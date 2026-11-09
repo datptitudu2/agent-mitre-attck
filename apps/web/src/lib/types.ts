@@ -336,3 +336,96 @@ export interface VersionDiffResponse {
   revoked: DiffChangeItem[]
   removed: DiffChangeItem[]
 }
+
+
+export interface EntityListItem {
+  domain: AttackDomain
+  type?: string
+  attack_id: string
+  name: string
+  platforms?: string[]
+  summary: string
+  data?: {
+    aliases?: string[]
+    first_seen?: string
+    last_seen?: string
+    url?: string
+  }
+}
+
+export interface EntityDetailTechnique {
+  attack_id: string
+  name: string
+  tactics: string[]
+  platforms: string[]
+  is_subtechnique: boolean
+  procedure_description: string
+}
+
+export interface EntityDetailResponse {
+  domain: AttackDomain
+  type: string
+  attack_id: string
+  name: string
+  description: string
+  platforms: string[]
+  metadata: {
+    aliases?: string[]
+    first_seen?: string
+    last_seen?: string
+    url?: string
+  }
+  technique_count: number
+  techniques: EntityDetailTechnique[]
+  techniques_by_tactic: Array<{
+    attack_id: string
+    shortname: string
+    name: string
+    order: number
+    techniques: EntityDetailTechnique[]
+  }>
+  related_software: Array<{
+    attack_id: string
+    name: string
+    type: string
+    description: string
+  }>
+  attributed_groups: Array<{
+    attack_id: string
+    name: string
+    description: string
+  }>
+}
+
+export interface AdminHealthResponse {
+  content_health: {
+    total_references: number
+    healthy_count: number
+    issue_count: number
+    cases_checked: number
+    lessons_checked: number
+    issues: Array<{
+      source_kind: string
+      source_slug: string
+      source_title: string
+      domain: string
+      technique_ref: string
+      issue_type: string
+      attack_id: string | null
+      replaced_by_attack_id: string | null
+      message: string
+    }>
+  }
+  db_storage: {
+    database_bytes?: number
+    database_pretty?: string
+    limit_bytes?: number
+    tables?: Record<string, { bytes: number; pretty: string }>
+  }
+  allowed_emails: Array<{
+    email: string
+    role: 'admin' | 'member'
+    note: string
+    created_at: string
+  }>
+}
