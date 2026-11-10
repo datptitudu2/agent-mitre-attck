@@ -43,6 +43,7 @@ check_db.js
 inspect_styles.mjs
 start_api.js
 take_audit_*.mjs
+capture_phase0_audit.mjs
 seed_fake_users.py
 
 # OS & IDE

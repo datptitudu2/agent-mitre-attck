@@ -44,7 +44,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       set({ initialized: true, session: null, profile: null })
     } else {
       try {
-        const me = await apiFetch<{ user: UserProfile }>('/api/me')
+        const me = await apiFetch<{ user: UserProfile }>('/api/me', {
+          headers: { Authorization: `Bearer ${currentSession.access_token}` },
+        })
         set({ initialized: true, session: currentSession, profile: me.user, error: null })
       } catch (err) {
         await supabase.auth.signOut()
@@ -66,7 +68,9 @@ export const useAuthStore = create<AuthState>((set) => ({
         return
       }
       try {
-        const me = await apiFetch<{ user: UserProfile }>('/api/me')
+        const me = await apiFetch<{ user: UserProfile }>('/api/me', {
+          headers: { Authorization: `Bearer ${nextSession.access_token}` },
+        })
         set({ session: nextSession, profile: me.user, error: null })
       } catch (err) {
         await supabase?.auth.signOut()
@@ -110,7 +114,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
 
     try {
-      const me = await apiFetch<{ user: UserProfile }>('/api/me')
+      const me = await apiFetch<{ user: UserProfile }>('/api/me', {
+        headers: { Authorization: `Bearer ${data.session.access_token}` },
+      })
       set({
         loading: false,
         session: data.session,
@@ -140,4 +146,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ session: null, profile: null, error: null })
   },
 }))
+
+if (typeof window !== 'undefined') {
+  ;(window as any).__AUTH_STORE__ = useAuthStore
+}
+
 

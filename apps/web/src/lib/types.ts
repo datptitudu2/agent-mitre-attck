@@ -164,6 +164,9 @@ export interface TechniqueDetail {
     sign: string
     mitigate: string
   }
+  metaphor_vi?: string
+  metaphor_status?: string
+  metaphor_title?: string
   tactical_insight?: string
   horizon?: {
     boundary_type: 'pre' | 'cross' | 'internal'

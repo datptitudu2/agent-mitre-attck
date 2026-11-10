@@ -14,7 +14,7 @@ export async function apiFetch<T>(
   const headers = new Headers(init.headers)
   headers.set('Accept', 'application/json')
 
-  if (supabase) {
+  if (!headers.has('Authorization') && supabase) {
     const { data } = await supabase.auth.getSession()
     const token = data.session?.access_token
     if (token) {
