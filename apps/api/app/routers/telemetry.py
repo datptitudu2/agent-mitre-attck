@@ -245,3 +245,4 @@ async def get_annotated_logs_for_technique(
             logs = cur.fetchall()
 
     return {"technique_id": technique_id, "logs": logs}
+

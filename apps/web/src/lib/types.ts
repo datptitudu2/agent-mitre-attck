@@ -521,3 +521,60 @@ export interface AnnotatedLogSample {
   created_at: string
 }
 
+export interface SigmaRule {
+  id: string
+  title: string
+  status: string
+  description: string
+  author: string
+  references_list: string[]
+  tags: string[]
+  techniques: string[]
+  logsource: {
+    category?: string
+    product?: string
+    service?: string
+  }
+  detection: Record<string, any>
+  raw_yaml: string
+  level: 'low' | 'medium' | 'high' | 'critical'
+  falsepositives: string[]
+  created_at: string
+}
+
+export interface MlFeatureRecipe {
+  id: string
+  technique_id: string
+  technique_name: string
+  feature_name: string
+  feature_formula: string
+  extraction_logic_sql: string
+  extraction_logic_python: string
+  intuition_vietnamese: string
+  expected_tp_signal: string
+  expected_fp_noise: string
+  colab_notebook_url: string
+  difficulty: 'beginner' | 'intermediate' | 'advanced'
+  created_at: string
+}
+
+export interface OsTelemetryRow {
+  id: string
+  action_category: string
+  behavior_description: string
+  windows_source: string
+  windows_event: string
+  windows_fields: string
+  linux_source: string
+  linux_event: string
+  linux_fields: string
+  notes: string
+}
+
+export interface HovercardTerm {
+  term: string
+  definition: string
+  example: string
+}
+
+

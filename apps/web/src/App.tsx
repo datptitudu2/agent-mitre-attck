@@ -16,6 +16,9 @@ const CasesPage = lazy(() =>
 const AgentPlannerPage = lazy(() =>
   import('@/pages/AgentPlannerPage').then((m) => ({ default: m.AgentPlannerPage })),
 )
+const RuleExplorerPage = lazy(() =>
+  import('@/pages/RuleExplorerPage').then((m) => ({ default: m.RuleExplorerPage })),
+)
 const LearnPage = lazy(() =>
   import('@/pages/LearnPage').then((m) => ({ default: m.LearnPage })),
 )
@@ -90,6 +93,7 @@ export function App() {
                 <Route path="/matrix" element={<MatrixPage />} />
                 <Route path="/cases" element={<CasesPage />} />
                 <Route path="/agent" element={<AgentPlannerPage />} />
+                <Route path="/rules" element={<RuleExplorerPage />} />
                 <Route path="/learn" element={<LearnPage />} />
                 <Route path="/coverage" element={<CoveragePage />} />
                 <Route path="/explorer" element={<ExplorerPage />} />

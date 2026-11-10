@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   BookOpen,
   Compass,
+  FileCode2,
   Grid3X3,
   LayoutDashboard,
   LogOut,
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
   { to: '/matrix', label: 'Matrix', icon: Grid3X3 },
   { to: '/cases', label: 'Case Studies', icon: PlaySquare },
   { to: '/agent', label: 'Agent Planner', icon: Sliders },
+  { to: '/rules', label: 'Rule Explorer', icon: FileCode2 },
   { to: '/learn', label: 'Learning Path', icon: BookOpen },
   { to: '/coverage', label: 'Coverage Lab', icon: Target },
   { to: '/explorer', label: 'Explorer', icon: Compass },

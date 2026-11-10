@@ -11,6 +11,7 @@ from apps.api.app.config import Settings, get_settings
 from apps.api.app.middleware import register_middlewares_and_handlers
 from apps.api.app.routers import (
     cases_and_content,
+    detection_engineering,
     entities_and_diff,
     matrix_and_techniques,
     telemetry,
@@ -66,6 +67,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api_router.include_router(entities_and_diff.router)
     api_router.include_router(cases_and_content.router)
     api_router.include_router(telemetry.router)
+    api_router.include_router(detection_engineering.router)
     api_router.include_router(translate.router)
 
     application.include_router(api_router)

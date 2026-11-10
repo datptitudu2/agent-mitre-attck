@@ -6,18 +6,19 @@ import {
   ArrowRight,
   BookOpen,
   Bookmark,
+  FileCode2,
   Grid3X3,
   PlaySquare,
   Radar,
   Search,
   ShieldOff,
+  Sliders,
   Sparkles,
-  Target,
   Zap,
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import type { VersionsResponse } from '@/lib/types'
-import { useBookmarks, useLessonProgress } from '@/hooks/useUserData'
+import { useBookmarks } from '@/hooks/useUserData'
 import { useUiStore } from '@/stores/useUiStore'
 import { DefensePolyhedronCanvas } from '@/components/dashboard/DefensePolyhedronCanvas'
 
@@ -48,7 +49,6 @@ export function DashboardPage() {
   const openTechnique = useUiStore((s) => s.openTechnique)
   const setCommandPaletteOpen = useUiStore((s) => s.setCommandPaletteOpen)
   const { bookmarks } = useBookmarks()
-  const { completedSlugs } = useLessonProgress()
 
   const { data: versionsData } = useQuery({
     queryKey: ['versions'],
@@ -306,103 +306,129 @@ export function DashboardPage() {
       </section>
 
       {/* =========================================================================
-          3. TRỌNG TÂM TRẢI NGHIỆM — 3 CỬA NGÕ THỰC CHIẾN
+          3. TRỌNG TÂM TRẢI NGHIỆM — CÁC CỬA NGÕ DETECTION ENGINEERING WORKBENCH
           Card phong cách hiện đại với chỉ báo tiến độ, viền sáng và chuyển động mượt
          ========================================================================= */}
-      <section aria-label="Ba cửa ngõ thực chiến chính" className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Cửa ngõ 1: Learning Path */}
+      <section aria-label="Bốn cửa ngõ thực chiến chính" className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Cửa ngõ 1: Rule Explorer */}
         <Link
-          to="/learn"
-          className="group relative border-2 border-line bg-surface p-6 sm:p-7 rounded-xs hover:border-attack hover:bg-surface-elevated transition-all flex flex-col justify-between shadow-sm hover:shadow-md"
+          to="/rules"
+          className="group relative border-2 border-line bg-surface p-5 sm:p-6 rounded-xs hover:border-signal-amber hover:bg-surface-elevated transition-all flex flex-col justify-between shadow-sm hover:shadow-md"
         >
-          <div className="space-y-3.5">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-xs font-bold text-attack uppercase tracking-wider">
-                MODULE 01 // NHẬP MÔN
+              <span className="font-mono text-xs font-bold text-signal-amber uppercase tracking-wider">
+                DETECTION // SIGMAHQ
               </span>
-              <BookOpen className="h-4 w-4 text-bone-400 group-hover:text-attack transition-colors" />
+              <FileCode2 className="h-4 w-4 text-bone-400 group-hover:text-signal-amber transition-colors" />
             </div>
 
-            <h2 className="font-display text-xl sm:text-2xl font-bold text-bone-100 group-hover:text-attack transition-colors">
-              Học từ Con số 0
+            <h2 className="font-display text-lg sm:text-xl font-bold text-bone-100 group-hover:text-signal-amber transition-colors">
+              Rule Explorer
             </h2>
 
-            <p className="text-xs sm:text-sm leading-relaxed text-bone-300">
-              8 bài học ngắn (≤ 5 phút/bài) mổ xẻ cấu trúc Tactic, Technique, Sub-technique,
-              kèm sơ đồ Kim tự tháp Nỗi đau, thanh trượt tiến hoá v18→v20 và mini quiz cuối bài.
+            <p className="text-xs leading-relaxed text-bone-300">
+              Khám phá luật phát hiện chuẩn mở SigmaHQ, phân tích Detection Tree và kiểm tra công thức Machine Learning.
             </p>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-line flex items-center justify-between font-mono text-xs text-bone-400">
-            <span>
-              Tiến độ: <strong className="text-bone-100 font-bold">{completedSlugs.size}</strong> / 8 bài
-            </span>
-            <span className="inline-flex items-center gap-1.5 font-bold text-attack group-hover:translate-x-1 transition-transform">
-              <span>Bắt đầu học</span>
+          <div className="mt-5 pt-3 border-t border-line flex items-center justify-between font-mono text-xs text-bone-400">
+            <span>Chuẩn mở SIEM</span>
+            <span className="inline-flex items-center gap-1 font-bold text-signal-amber group-hover:translate-x-1 transition-transform">
+              <span>Mở Rules</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </span>
           </div>
         </Link>
 
-        {/* Cửa ngõ 2: Case Studies Player */}
+        {/* Cửa ngõ 2: Agent Telemetry Planner */}
         <Link
-          to="/cases"
-          className="group relative border-2 border-line bg-surface p-6 sm:p-7 rounded-xs hover:border-defend hover:bg-surface-elevated transition-all flex flex-col justify-between shadow-sm hover:shadow-md"
+          to="/agent"
+          className="group relative border-2 border-line bg-surface p-5 sm:p-6 rounded-xs hover:border-defend hover:bg-surface-elevated transition-all flex flex-col justify-between shadow-sm hover:shadow-md"
         >
-          <div className="space-y-3.5">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="font-mono text-xs font-bold text-defend uppercase tracking-wider">
-                MODULE 02 // CHIẾN TRƯỜNG THỰC
+                TELEMETRY // PLANNER
               </span>
-              <PlaySquare className="h-4 w-4 text-bone-400 group-hover:text-defend transition-colors" />
+              <Sliders className="h-4 w-4 text-bone-400 group-hover:text-defend transition-colors" />
             </div>
 
-            <h2 className="font-display text-xl sm:text-2xl font-bold text-bone-100 group-hover:text-defend transition-colors">
-              Case Studies Thực chiến
+            <h2 className="font-display text-lg sm:text-xl font-bold text-bone-100 group-hover:text-defend transition-colors">
+              Agent Planner
             </h2>
 
-            <p className="text-xs sm:text-sm leading-relaxed text-bone-300">
-              Xem từng bước chiến dịch SolarWinds, NotPetya, Dream Job, APT32 (OceanLotus),
-              sự cố lưới điện Ukraine ICS và kịch bản AI v20 trên sơ đồ Attack Chain Player góc nhìn kép.
+            <p className="text-xs leading-relaxed text-bone-300">
+              Đo lường độ phủ của EDR agent qua 15 Tactics, nhận diện vùng mù và thuật toán gợi ý Greedy Marginal Gain.
             </p>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-line flex items-center justify-between font-mono text-xs text-bone-400">
+          <div className="mt-5 pt-3 border-t border-line flex items-center justify-between font-mono text-xs text-bone-400">
+            <span>Sysmon, auditd, eBPF</span>
+            <span className="inline-flex items-center gap-1 font-bold text-defend group-hover:translate-x-1 transition-transform">
+              <span>Đo độ phủ</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </span>
+          </div>
+        </Link>
+
+        {/* Cửa ngõ 3: Case Studies Player */}
+        <Link
+          to="/cases"
+          className="group relative border-2 border-line bg-surface p-5 sm:p-6 rounded-xs hover:border-attack hover:bg-surface-elevated transition-all flex flex-col justify-between shadow-sm hover:shadow-md"
+        >
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-xs font-bold text-attack uppercase tracking-wider">
+                INCIDENTS // ATTACK CHAIN
+              </span>
+              <PlaySquare className="h-4 w-4 text-bone-400 group-hover:text-attack transition-colors" />
+            </div>
+
+            <h2 className="font-display text-lg sm:text-xl font-bold text-bone-100 group-hover:text-attack transition-colors">
+              Case Studies
+            </h2>
+
+            <p className="text-xs leading-relaxed text-bone-300">
+              Tái hiện các chiến dịch SolarWinds, NotPetya, APT32 trên sơ đồ Attack Chain Player góc nhìn tấn công và phòng thủ kép.
+            </p>
+          </div>
+
+          <div className="mt-5 pt-3 border-t border-line flex items-center justify-between font-mono text-xs text-bone-400">
             <span>6 Chiến dịch thực tế</span>
-            <span className="inline-flex items-center gap-1.5 font-bold text-defend group-hover:translate-x-1 transition-transform">
+            <span className="inline-flex items-center gap-1 font-bold text-attack group-hover:translate-x-1 transition-transform">
               <span>Chạy Player</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </span>
           </div>
         </Link>
 
-        {/* Cửa ngõ 3: Coverage Lab */}
+        {/* Cửa ngõ 4: Learning Path */}
         <Link
-          to="/coverage"
-          className="group relative border-2 border-line bg-surface p-6 sm:p-7 rounded-xs hover:border-caution hover:bg-surface-elevated transition-all flex flex-col justify-between shadow-sm hover:shadow-md"
+          to="/learn"
+          className="group relative border-2 border-line bg-surface p-5 sm:p-6 rounded-xs hover:border-caution hover:bg-surface-elevated transition-all flex flex-col justify-between shadow-sm hover:shadow-md"
         >
-          <div className="space-y-3.5">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="font-mono text-xs font-bold text-caution uppercase tracking-wider">
-                MODULE 03 // ĐÁNH GIÁ SOC
+                CURRICULUM // LỘ TRÌNH ĐỌC
               </span>
-              <Target className="h-4 w-4 text-bone-400 group-hover:text-caution transition-colors" />
+              <BookOpen className="h-4 w-4 text-bone-400 group-hover:text-caution transition-colors" />
             </div>
 
-            <h2 className="font-display text-xl sm:text-2xl font-bold text-bone-100 group-hover:text-caution transition-colors">
-              Coverage Lab &amp; Bản đồ Nhiệt
+            <h2 className="font-display text-lg sm:text-xl font-bold text-bone-100 group-hover:text-caution transition-colors">
+              Lộ Trình Chuyên Sâu
             </h2>
 
-            <p className="text-xs sm:text-sm leading-relaxed text-bone-300">
-              Đánh dấu kỹ thuật đội bạn đã có Detection Rule, phát hiện vùng mù phòng thủ (Blind Spots),
-              nhận đề xuất ưu tiên vá lỗ hổng và xuất file chuẩn MITRE ATT&amp;CK Navigator Layer.
+            <p className="text-xs leading-relaxed text-bone-300">
+              4 chuyên đề cốt lõi: Telemetry, DET ➔ AN ➔ DC, Viết luật SigmaHQ, và Bảng đối soát Telemetry Windows ↔ Linux.
             </p>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-line flex items-center justify-between font-mono text-xs text-bone-400">
-            <span>Đo độ phủ phòng thủ</span>
-            <span className="inline-flex items-center gap-1.5 font-bold text-caution group-hover:translate-x-1 transition-transform">
-              <span>Đo độ phủ</span>
+          <div className="mt-5 pt-3 border-t border-line flex items-center justify-between font-mono text-xs text-bone-400">
+            <span>Không bài tập · Thực chiến</span>
+            <span className="inline-flex items-center gap-1 font-bold text-caution group-hover:translate-x-1 transition-transform">
+              <span>Xem giáo trình</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </span>
           </div>

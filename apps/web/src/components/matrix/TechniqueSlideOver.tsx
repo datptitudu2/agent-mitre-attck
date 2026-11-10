@@ -6,7 +6,9 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
+  Cpu,
   ExternalLink,
+  FileCode2,
   Languages,
   Sparkles,
   Terminal,
@@ -14,13 +16,16 @@ import {
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { getTacticMeta } from '@/lib/tacticTheme'
-import type { AnnotatedLogSample, TechniqueDetail } from '@/lib/types'
+import type { AnnotatedLogSample, MlFeatureRecipe, SigmaRule, TechniqueDetail } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { useTechniqueTranslation } from '@/hooks/useTechniqueTranslation'
 import { useBookmarks, useTechniqueNote } from '@/hooks/useUserData'
 import { useUiStore } from '@/stores/useUiStore'
 import { renderStixText, StixArticleViewer } from '@/lib/stixRenderer'
 import { AnnotatedLogReader } from '@/components/telemetry/AnnotatedLogReader'
+import { SigmaRuleViewer } from '@/components/detection/SigmaRuleViewer'
+import { MlRecipeCard } from '@/components/detection/MlRecipeCard'
+import { KnowledgeHovercard } from '@/components/common/KnowledgeHovercard'
 
 // 15 Tactics chuẩn Enterprise v20.1 theo thứ tự chuỗi tấn công (Không cuộn ngang, vừa khít khung)
 // ST = Stealth (TA0005 v19+), DI = Defense Impairment (TA0112 v19+)
@@ -47,7 +52,6 @@ export function TechniqueSlideOver() {
   const [activeSection, setActiveSection] = useState<string>('sec-00')
   const [noteDraft, setNoteDraft] = useState('')
   const [noteSavedToast, setNoteSavedToast] = useState(false)
-  const [quizAnswer, setQuizAnswer] = useState<number | null>(null)
   const [expandedMitigations, setExpandedMitigations] = useState<Record<string, boolean>>({})
   const [expandedAnalytics, setExpandedAnalytics] = useState<Record<string, boolean>>({})
   const [expandedProcedures, setExpandedProcedures] = useState<Record<string, boolean>>({})
@@ -93,13 +97,26 @@ export function TechniqueSlideOver() {
     enabled: Boolean(attackId),
   })
 
+  const { data: techSigmaData } = useQuery({
+    queryKey: ['tech-sigma-rules', attackId],
+    queryFn: () =>
+      apiFetch<{ rules: SigmaRule[]; total: number }>(`/api/detection/sigma-rules?technique_id=${attackId}`),
+    enabled: Boolean(attackId),
+  })
+
+  const { data: techMlData } = useQuery({
+    queryKey: ['tech-ml-recipes', attackId],
+    queryFn: () =>
+      apiFetch<{ recipes: MlFeatureRecipe[]; total: number }>(`/api/detection/ml-recipes?technique_id=${attackId}`),
+    enabled: Boolean(attackId),
+  })
+
 
   useEffect(() => {
     setNoteDraft(note?.body_md ?? '')
   }, [note?.body_md, attackId])
 
   useEffect(() => {
-    setQuizAnswer(null)
     setExpandedMitigations({})
     setExpandedAnalytics({})
     setExpandedProcedures({})
@@ -641,6 +658,12 @@ export function TechniqueSlideOver() {
                         </span>
                         <div className="text-bone-200 leading-relaxed font-normal pt-0.5">
                           {renderStixText(sixChainDossier.detection).content}
+                          {techSigmaData?.rules && techSigmaData.rules.length > 0 && (
+                            <span className="inline-flex items-center gap-1 font-mono text-[10px] px-2 py-0.5 rounded-xs bg-signal-amber/15 text-signal-amber border border-signal-amber/30 font-bold ml-2">
+                              <FileCode2 className="h-3 w-3" />
+                              {techSigmaData.rules.length} LUẬT SIGMAHQ
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -651,6 +674,12 @@ export function TechniqueSlideOver() {
                         </span>
                         <div className="text-bone-200 leading-relaxed font-normal pt-0.5">
                           {renderStixText(sixChainDossier.mlFeature).content}
+                          {techMlData?.recipes && techMlData.recipes.length > 0 && (
+                            <span className="inline-flex items-center gap-1 font-mono text-[10px] px-2 py-0.5 rounded-xs bg-signal-teal/15 text-signal-teal border border-signal-teal/30 font-bold ml-2">
+                              <Cpu className="h-3 w-3" />
+                              {techMlData.recipes.length} CÔNG THỨC ML
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -1316,6 +1345,56 @@ export function TechniqueSlideOver() {
                         ))}
                       </div>
                     )}
+
+                    {/* LUẬT PHÁT HIỆN SIGMAHQ CHÍNH THỨC */}
+                    <div className="pt-4 border-t border-line/60 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-signal-amber uppercase tracking-wider">
+                          <FileCode2 className="h-4 w-4" />
+                          <span>LUẬT PHÁT HIỆN SIGMAHQ CHÍNH THỨC ({techSigmaData?.rules.length || 0})</span>
+                        </div>
+                        <span className="font-mono text-[10px] text-bone-500">
+                          CHUẨN MỞ ĐỘC LẬP SIEM
+                        </span>
+                      </div>
+
+                      {techSigmaData?.rules && techSigmaData.rules.length > 0 ? (
+                        <div className="space-y-4">
+                          {techSigmaData.rules.map((rule) => (
+                            <SigmaRuleViewer key={rule.id} rule={rule} />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-3.5 border border-line/40 rounded-xs bg-surface font-mono text-[11px] text-bone-400 italic">
+                          CHƯA CÓ LUẬT SIGMAHQ BIÊN SOẠN RIÊNG CHO KỸ THUẬT NÀY · DÙNG CHỮ KÝ AN/DC THEO MÔ HÌNH TRÊN.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* CÔNG THỨC ĐẶC TRƯNG MACHINE LEARNING (ML FEATURE RECIPES) */}
+                    <div className="pt-4 border-t border-line/60 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-signal-teal uppercase tracking-wider">
+                          <Cpu className="h-4 w-4" />
+                          <span>CÔNG THỨC ĐẶC TRƯNG MACHINE LEARNING ({techMlData?.recipes.length || 0})</span>
+                        </div>
+                        <span className="font-mono text-[10px] text-bone-500">
+                          TÍN HIỆU TOÁN HỌC &amp; CODE TRÍCH XUẤT
+                        </span>
+                      </div>
+
+                      {techMlData?.recipes && techMlData.recipes.length > 0 ? (
+                        <div className="space-y-4">
+                          {techMlData.recipes.map((recipe) => (
+                            <MlRecipeCard key={recipe.id} recipe={recipe} />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-3.5 border border-line/40 rounded-xs bg-surface font-mono text-[11px] text-bone-400 italic">
+                          CHƯA CÓ CÔNG THỨC ML ĐƯỢC DUYỆT RIÊNG CHO KỸ THUẬT NÀY · THAM KHẢO CÁC ĐẶC TRƯNG PROCESS/NETWORK CHUNG.
+                        </div>
+                      )}
+                    </div>
                   </section>
 
                   {/* =========================================================
@@ -1449,53 +1528,46 @@ export function TechniqueSlideOver() {
                       </h2>
                     </div>
 
-                    {/* Câu hỏi trắc nghiệm nhanh 1 câu */}
+                    {/* Thẻ Ôn Thụ Động & Thuật Ngữ Cốt Lõi (Passive Review - Không bài tập) */}
                     <div className="border border-line bg-surface-elevated p-4 rounded-xs space-y-3 font-sans">
-                      <div className="font-mono text-xs font-bold text-attack uppercase tracking-wider">
-                        CÂU HỎI NHANH: Kỹ thuật {detail.attack_id} thường diễn ra ở đâu trong tầm nhìn của SOC?
+                      <div className="flex items-center justify-between border-b border-line/60 pb-2">
+                        <div className="font-mono text-xs font-bold text-signal-amber uppercase tracking-wider flex items-center gap-1.5">
+                          <Bookmark className="h-3.5 w-3.5" />
+                          <span>TỔNG KẾT TRI THỨC &amp; THẺ ÔN THỤ ĐỘNG</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            detail &&
+                            toggleBookmark.mutate({
+                              attackId: detail.attack_id,
+                              domain: detail.domain,
+                              existingId: existingBookmark?.id,
+                            })
+                          }
+                          className={cn(
+                            'font-mono text-[11px] px-2.5 py-1 rounded-xs border transition-colors flex items-center gap-1.5',
+                            existingBookmark
+                              ? 'border-signal-amber bg-signal-amber/15 text-signal-amber font-bold'
+                              : 'border-line text-bone-400 hover:text-bone-100 hover:border-line-strong',
+                          )}
+                        >
+                          <Bookmark className="h-3 w-3" />
+                          <span>{existingBookmark ? 'ĐÃ ĐÁNH DẤU XEM LẠI' : 'ĐÁNH DẤU ĐỂ XEM LẠI'}</span>
+                        </button>
                       </div>
 
-                      <div className="space-y-2 font-mono text-xs">
-                        {[
-                          {
-                            id: 0,
-                            label: 'A. Nằm sâu bên trong bộ điều khiển miền Active Directory.',
-                            correct: false,
-                          },
-                          {
-                            id: 1,
-                            label: isPreAttack
-                              ? 'B. Bên ngoài hạ tầng nội bộ (hạ tầng bên thứ ba hoặc internet). (ĐÚNG)'
-                              : boundaryType === 'cross'
-                                ? 'B. Xuyên qua ranh giới từ website bên ngoài vào trình duyệt máy trạm. (ĐÚNG)'
-                                : 'B. Trực tiếp trên endpoint hoặc thiết bị mạng nội bộ. (ĐÚNG)',
-                            correct: true,
-                          },
-                          {
-                            id: 2,
-                            label: 'C. Luôn hiển thị tức thì trên firewall mà không cần cấu hình log.',
-                            correct: false,
-                          },
-                        ].map((opt) => (
-                          <button
-                            key={opt.id}
-                            type="button"
-                            onClick={() => setQuizAnswer(opt.id)}
-                            className={cn(
-                              'w-full text-left p-2.5 rounded-xs border transition-all flex items-center justify-between',
-                              quizAnswer === opt.id
-                                ? opt.correct
-                                  ? 'border-defend bg-defend-muted/20 text-defend font-bold'
-                                  : 'border-attack bg-attack-muted/20 text-attack'
-                                : 'border-line bg-surface text-bone-300 hover:border-line-strong',
-                            )}
-                          >
-                            <span>{opt.label}</span>
-                            {quizAnswer === opt.id && (
-                              <span>{opt.correct ? '✓ CHÍNH XÁC' : '✕ CHƯA ĐÚNG'}</span>
-                            )}
-                          </button>
-                        ))}
+                      <p className="text-xs text-bone-300 leading-relaxed">
+                        Kỹ thuật <strong className="text-bone-100 font-mono">{detail.attack_id}</strong> đòi hỏi sự phối hợp chặt chẽ giữa cảm biến <KnowledgeHovercard termKey="EDR">EDR</KnowledgeHovercard> trên thiết bị đầu cuối và hệ thống lưu trữ tập trung <KnowledgeHovercard termKey="SIEM">SIEM</KnowledgeHovercard>. Chú ý phát hiện thủ đoạn <KnowledgeHovercard termKey="LotL">Living off the Land (LotL)</KnowledgeHovercard> bằng cách theo dõi bất thường <KnowledgeHovercard termKey="Parent-Child">cặp tiến trình cha–con</KnowledgeHovercard> và tính toán <KnowledgeHovercard termKey="Entropy">Entropy dòng lệnh</KnowledgeHovercard>.
+                      </p>
+
+                      <div className="pt-2 flex flex-wrap items-center gap-2 text-[11px] font-mono border-t border-line/50">
+                        <span className="text-bone-500">Tra cứu nhanh:</span>
+                        <KnowledgeHovercard termKey="Sigma">#SigmaRule</KnowledgeHovercard>
+                        <span className="text-bone-600">·</span>
+                        <KnowledgeHovercard termKey="auditd">#LinuxAuditd</KnowledgeHovercard>
+                        <span className="text-bone-600">·</span>
+                        <KnowledgeHovercard termKey="eBPF">#eBPFTetragon</KnowledgeHovercard>
                       </div>
                     </div>
 
