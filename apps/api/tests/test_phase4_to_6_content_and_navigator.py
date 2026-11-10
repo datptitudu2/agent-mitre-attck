@@ -52,3 +52,4 @@ def test_curriculum_lessons_quizzes_and_glossary_complete():
         for q in q_list:
             assert 0 <= q["correct_index"] < len(q["options"])
             assert q.get("explanation_vi")
+

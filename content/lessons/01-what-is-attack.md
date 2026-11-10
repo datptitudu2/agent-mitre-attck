@@ -33,3 +33,4 @@ Trong mô hình nổi tiếng **Pyramid of Pain** (Kim tự tháp Nỗi đau c�
 - **Enterprise:** Mạng văn phòng, máy chủ Windows/Linux/macOS, Active Directory, Đám mây (IaaS/SaaS), Container và cả hệ thống **AI** mới nhất.
 - **Mobile:** Thiết bị di động Android và iOS.
 - **ICS (Industrial Control Systems):** Hệ thống điều khiển công nghiệp OT như trạm biến áp, nhà máy nước, dây chuyền sản xuất.
+

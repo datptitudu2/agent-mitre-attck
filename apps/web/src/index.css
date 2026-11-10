@@ -1,33 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    color-scheme: light;
-  }
-
+  :root,
   .dark {
     color-scheme: dark;
+
+    /* 1. Dark Theme — "Moss-Black Ink" (Mực đen ngả rêu ấm, tuyệt đối không dùng navy/slate xanh) */
+    --ink-950: #0A0C0B;
+    --ink-900: #101311;
+    --ink-850: #141816;
+    --ink-800: #171B19;
+    --ink-700: #222724;
+
+    /* Functional Surface Tokens */
+    --surface: #0A0C0B;
+    --surface-elevated: #101311;
+    --surface-overlay: #141816;
+    --surface-subtle: #171B19;
+
+    /* 2. Đường kẻ mảnh 1px (Hairlines — thay thế hoàn toàn box-shadow và viền dày) */
+    --line-subtle: rgba(236, 232, 222, 0.06);
+    --line: rgba(236, 232, 222, 0.11);
+    --line-strong: rgba(236, 232, 222, 0.24);
+
+    /* 3. Chữ Trắng Ngà (Warm Bone — không dùng #FFFFFF gắt mắt) */
+    --bone-100: #ECE8DE;
+    --bone-200: #D8D4C8;
+    --bone-300: #B9B5A9;
+    --bone-400: #9E9A8E;
+    --bone-500: #7C7A72;
+
+    /* 4. Đúng 2 Màu Tín hiệu Đối kháng + 1 Màu Lưu ý (< 5%) */
+    --attack: #FF5A36;
+    --attack-muted: rgba(255, 90, 54, 0.14);
+    --defend: #6FCFB2;
+    --defend-muted: rgba(111, 207, 178, 0.14);
+    --caution: #F2B84B;
+
+    /* 5. Dải đơn sắc liên tục cho Heatmap (Ink -> Vermilion) */
+    --heat-0: #101311;
+    --heat-1: #2A1915;
+    --heat-2: #522318;
+    --heat-3: #8A301E;
+    --heat-4: #C44327;
+    --heat-5: #FF5A36;
+  }
+
+  [data-theme="light"],
+  html:not(.dark) {
+    color-scheme: light;
+
+    /* 1. Light Theme — "Archival Dossier Paper" (Giấy hồ sơ lưu trữ) */
+    --ink-950: #F3EFE6;
+    --ink-900: #EEE9DF;
+    --ink-850: #E9E3D7;
+    --ink-800: #E4DED1;
+    --ink-700: #DFD8C8;
+
+    /* Functional Surface Tokens */
+    --surface: #F3EFE6;
+    --surface-elevated: #FFFFFF;
+    --surface-overlay: #FFFFFF;
+    --surface-subtle: #EAE5D8;
+
+    --line-subtle: rgba(20, 20, 18, 0.05);
+    --line: rgba(20, 20, 18, 0.13);
+    --line-strong: rgba(20, 20, 18, 0.28);
+
+    --bone-100: #141412;
+    --bone-200: #2C2B26;
+    --bone-300: #3E3D38;
+    --bone-400: #5A584F;
+    --bone-500: #78756D;
+
+    --attack: #B02E15;
+    --attack-muted: rgba(176, 46, 21, 0.10);
+    --defend: #14634B;
+    --defend-muted: rgba(20, 99, 75, 0.10);
+    --caution: #7A4D03;
+
+    --heat-0: #EEE9DF;
+    --heat-1: #F0D6CC;
+    --heat-2: #E4AE9A;
+    --heat-3: #D47E62;
+    --heat-4: #C25031;
+    --heat-5: #B02E15;
   }
 
   body {
-    @apply font-sans transition-colors duration-200;
+    background-color: var(--ink-950);
+    color: var(--bone-100);
+    font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+    transition: background-color 150ms ease, color 150ms ease;
   }
 }
 
-/* Lưới toạ độ mờ phong cách Cyber-Defense (tôn trọng prefers-reduced-motion) */
-.cyber-grid-bg {
+/* Lưới toạ độ bản đồ địa hình (Cartographic Coordinate Grid) */
+.carto-grid-bg {
   background-image:
-    linear-gradient(to right, rgba(6, 182, 212, 0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(139, 92, 246, 0.06) 1px, transparent 1px);
-  background-size: 36px 36px;
+    linear-gradient(to right, var(--line-subtle) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line-subtle) 1px, transparent 1px);
+  background-size: 32px 32px;
 }
 
-.glass-card {
-  @apply bg-white/85 dark:bg-slate-900/65 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800/80;
+/* Khung hồ sơ tình báo (Dossier Frame) — 1px hairline, không shadow, không bo tròn lố */
+.dossier-frame {
+  background-color: #101311;
+  border: 1px solid rgba(236, 232, 222, 0.11);
+  border-radius: 3px;
 }
 
+/* Drawer chi tiết kỹ thuật — 100% ĐẶC OPAQUE, KHÔNG BAO GIỜ TRONG SUỐT */
+.dossier-drawer {
+  background-color: #0A0C0B !important;
+  color: #ECE8DE !important;
+  border-left: 1px solid rgba(236, 232, 222, 0.15) !important;
+}
+
+[data-theme="light"] .dossier-drawer,
+html:not(.dark) .dossier-drawer {
+  background-color: #F3EFE6 !important;
+  color: #141412 !important;
+  border-left: 1px solid rgba(20, 20, 18, 0.16) !important;
+}
+
+.dossier-frame-strong {
+  background-color: var(--ink-850);
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+}
+
+/* Tôn trọng prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

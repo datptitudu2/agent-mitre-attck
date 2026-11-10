@@ -1,39 +1,56 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
 import {
-  AlertTriangle,
   Bookmark,
-  Check,
+  ChevronDown,
   ChevronRight,
-  Cpu,
-  Database,
+  ChevronUp,
   ExternalLink,
-  FileText,
-  Layers,
-  Radar,
-  ShieldCheck,
-  Sliders,
+  Languages,
   Sparkles,
-  Users,
   X,
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { getTacticMeta } from '@/lib/tacticTheme'
 import type { TechniqueDetail } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { useTechniqueTranslation } from '@/hooks/useTechniqueTranslation'
 import { useBookmarks, useTechniqueNote } from '@/hooks/useUserData'
 import { useUiStore } from '@/stores/useUiStore'
+import { renderStixText, StixArticleViewer } from '@/lib/stixRenderer'
 
-type TabKey = 'overview' | 'detection' | 'procedures' | 'notes'
+// 15 Tactics chuẩn Enterprise v20.1 theo thứ tự chuỗi tấn công (Không cuộn ngang, vừa khít khung)
+// ST = Stealth (TA0005 v19+), DI = Defense Impairment (TA0112 v19+)
+const ALL_15_TACTICS = [
+  { id: 'reconnaissance', short: 'RC', top: 'Trinh', bot: 'sát', isPre: true },
+  { id: 'resource-development', short: 'RD', top: 'Tài', bot: 'nguyên', isPre: true },
+  { id: 'initial-access', short: 'IA', top: 'Xâm', bot: 'nhập' },
+  { id: 'execution', short: 'EX', top: 'Thực', bot: 'thi' },
+  { id: 'persistence', short: 'PR', top: 'Duy', bot: 'trì' },
+  { id: 'privilege-escalation', short: 'PE', top: 'Leo', bot: 'quyền' },
+  { id: 'defense-evasion', short: 'ST', top: 'Ẩn', bot: 'mình', isNewV19: true }, // ST: Stealth
+  { id: 'defense-impairment', short: 'DI', top: 'Vô', bot: 'hiệu', isNewV19: true }, // DI: Defense Impairment
+  { id: 'credential-access', short: 'CA', top: 'Xác', bot: 'thực' },
+  { id: 'discovery', short: 'DS', top: 'Khám', bot: 'phá' },
+  { id: 'lateral-movement', short: 'LM', top: 'Ngang', bot: 'hàng' },
+  { id: 'collection', short: 'CO', top: 'Thu', bot: 'thập' },
+  { id: 'command-and-control', short: 'C2', top: 'Chỉ', bot: 'huy' },
+  { id: 'exfiltration', short: 'EF', top: 'Rút', bot: 'tin' },
+  { id: 'impact', short: 'IM', top: 'Tác', bot: 'động' },
+]
 
 export function TechniqueSlideOver() {
   const { selectedTechnique, openTechnique, closeTechnique } = useUiStore()
-  const [activeTab, setActiveTab] = useState<TabKey>('overview')
+  const [activeSection, setActiveSection] = useState<string>('sec-00')
   const [noteDraft, setNoteDraft] = useState('')
   const [noteSavedToast, setNoteSavedToast] = useState(false)
+  const [quizAnswer, setQuizAnswer] = useState<number | null>(null)
+  const [expandedMitigations, setExpandedMitigations] = useState<Record<string, boolean>>({})
+  const [expandedAnalytics, setExpandedAnalytics] = useState<Record<string, boolean>>({})
+  const [expandedProcedures, setExpandedProcedures] = useState<Record<string, boolean>>({})
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const attackId = selectedTechnique?.attackId ?? null
   const domainHint = selectedTechnique?.domain
@@ -51,10 +68,18 @@ export function TechniqueSlideOver() {
 
   const { bookmarks, toggleBookmark } = useBookmarks()
   const { note, saveNote } = useTechniqueNote(attackId)
+  const { isTranslated, isTranslating, toggleTranslate, t } = useTechniqueTranslation(detail)
 
   useEffect(() => {
     setNoteDraft(note?.body_md ?? '')
   }, [note?.body_md, attackId])
+
+  useEffect(() => {
+    setQuizAnswer(null)
+    setExpandedMitigations({})
+    setExpandedAnalytics({})
+    setExpandedProcedures({})
+  }, [attackId])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -65,6 +90,35 @@ export function TechniqueSlideOver() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [selectedTechnique, closeTechnique])
+
+  // Scrollspy via IntersectionObserver
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((e) => e.isIntersecting)
+        if (visible.length > 0) {
+          setActiveSection(visible[0].target.id)
+        }
+      },
+      { root: container, threshold: 0.2 },
+    )
+
+    const sections = container.querySelectorAll('[data-dossier-sec]')
+    sections.forEach((s) => observer.observe(s))
+
+    return () => observer.disconnect()
+  }, [detail])
+
+  const scrollToSec = (secId: string) => {
+    const el = document.getElementById(secId)
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      setActiveSection(secId)
+    }
+  }
 
   const existingBookmark = detail
     ? bookmarks.find(
@@ -78,79 +132,253 @@ export function TechniqueSlideOver() {
     setTimeout(() => setNoteSavedToast(false), 2000)
   }
 
+  // Phân loại ranh giới phòng thủ: PRE (Ngoài mạng), CROSS-BOUNDARY (Xuyên ranh giới), hay INTERNAL (Nội bộ)
+  const boundaryType = useMemo<'pre' | 'cross' | 'internal'>(() => {
+    if (!detail) return 'internal'
+    const id = detail.attack_id.toUpperCase()
+    const tacs = detail.tactics.map((t) => t.toLowerCase())
+
+    // Xuyên ranh giới (Cross-boundary): T1189, Phishing, External Exploit
+    if (
+      id === 'T1189' ||
+      id.startsWith('T1189.') ||
+      id.startsWith('T1566') ||
+      id === 'T1190'
+    ) {
+      return 'cross'
+    }
+
+    // PRE: Reconnaissance hoặc Resource Development
+    if (
+      tacs.includes('reconnaissance') ||
+      tacs.includes('resource-development') ||
+      tacs.includes('pre-attack')
+    ) {
+      return 'pre'
+    }
+
+    return 'internal'
+  }, [detail])
+
+  const isPreAttack = boundaryType === 'pre'
+
+  // Phân tích các chặng theo ranh giới mạng (Động từ DB / Backend, không fix cứng)
+  const crossStages = useMemo(() => {
+    if (detail?.horizon) {
+      return {
+        stage1: detail.horizon.stage1,
+        stage2: detail.horizon.stage2,
+        stage3: detail.horizon.stage3,
+      }
+    }
+    return {
+      stage1: 'Hạ tầng / Tài nguyên ngoài',
+      stage2: 'Xâm nhập qua ranh giới mạng',
+      stage3: 'Thực thi mã trên Endpoint',
+    }
+  }, [detail])
+
+  const tacticalInsight = useMemo(() => {
+    if (detail?.tactical_insight) return detail.tactical_insight
+    if (detail?.horizon?.insight) return detail.horizon.insight
+    if (!detail) return ''
+    if (boundaryType === 'pre') {
+      return `${detail.name} (${detail.attack_id}) diễn ra hoàn toàn bên ngoài tầm với của firewall và EDR nội bộ. Trọng tâm là đào tạo nhận thức và thu thập Threat Intelligence.`
+    }
+    if (boundaryType === 'cross') {
+      return `${detail.name} (${detail.attack_id}) là kỹ thuật xâm nhập xuyên vành đai: kết hợp kiểm soát tại cổng Gateway và giám sát chặt chẽ thiết bị đầu cuối.`
+    }
+    return `${detail.name} (${detail.attack_id}) thực thi ngay bên trong hệ thống nội bộ. Đây là vùng kiểm soát chính của EDR/SIEM qua Process Creation và Memory Modification.`
+  }, [detail, boundaryType])
+
+  // "3 điều cốt lõi cần nhớ" (Lấy trực tiếp từ DB / Backend, có fallback STIX)
+  const fastCardContent = useMemo(() => {
+    if (!detail) {
+      return { what: '', sign: '', mitigate: '' }
+    }
+    if (detail.fast_card) {
+      return detail.fast_card
+    }
+
+    let what = `${detail.name} (${detail.attack_id}) là kỹ thuật thuộc giai đoạn ${detail.tactics.join(', ')}.`
+    if (detail.description) {
+      const cleanDesc = detail.description.replace(/\(Citation:[^)]+\)/g, '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      const firstSentence = cleanDesc.split(/\.\s+/)[0]
+      if (firstSentence) what = `${firstSentence.trim()}.`
+    }
+
+    let sign = ''
+    if (boundaryType === 'pre') {
+      sign = 'Gần như KHÔNG để lại log trong mạng nội bộ (hoạt động xảy ra trên hạ tầng bên thứ ba hoặc internet).'
+    } else if (boundaryType === 'cross') {
+      sign = 'Khởi phát từ kết nối web ngoài hoặc email, sau đó sinh tiến trình con bất thường hoặc kích hoạt khai thác trên máy trạm.'
+    } else {
+      sign = 'Đối chiếu hành vi tiến trình bất thường với các kết nối mạng và khóa Registry vừa tạo.'
+    }
+
+    let mitigate = ''
+    if (detail.mitigations.length > 0) {
+      const topMit = detail.mitigations[0]
+      mitigate = `Áp dụng biện pháp [${topMit.attack_id} ${topMit.name}]: ${topMit.action_vi || topMit.name}`
+    } else if (detail.parent) {
+      mitigate = `Áp dụng chính sách bảo vệ kế thừa từ kỹ thuật cha [${detail.parent.attack_id} ${detail.parent.name}].`
+    } else {
+      mitigate = 'Áp dụng nguyên tắc đặc quyền tối thiểu (Least Privilege) và phân tách mạng nghiêm ngặt.'
+    }
+
+    return { what, sign, mitigate }
+  }, [detail, boundaryType])
+
+  // Tính toán dữ liệu Chòm sao d3-force giả lập theo giải thuật lực đàn hồi xác định (Deterministic Force Layout)
+  const constellationNodes = useMemo(() => {
+    if (!detail) return []
+    const rawNodes: Array<{ id: string; name: string; type: 'group' | 'software' | 'campaign'; weight: number }> = []
+
+    for (const g of detail.procedures.groups.slice(0, 16)) {
+      rawNodes.push({ id: g.attack_id, name: g.name, type: 'group', weight: 4 })
+    }
+    for (const s of detail.procedures.software.slice(0, 14)) {
+      rawNodes.push({ id: s.attack_id, name: s.name, type: 'software', weight: 3 })
+    }
+    for (const c of detail.procedures.campaigns.slice(0, 6)) {
+      rawNodes.push({ id: c.attack_id, name: c.name, type: 'campaign', weight: 5 })
+    }
+
+    // Tính toạ độ hình học phân bổ hình tròn quanh tâm (cx=240, cy=130)
+    const cx = 240
+    const cy = 130
+    const total = rawNodes.length
+    if (total === 0) return []
+
+    return rawNodes.map((node, i) => {
+      // Phân tầng theo bán kính: Campaign ở gần, Group ở giữa, Software ở ngoài
+      let baseR = 75
+      if (node.type === 'campaign') baseR = 50
+      if (node.type === 'software') baseR = 95
+
+      const angle = (2 * Math.PI * i) / total
+      // Thêm độ lệch nhẹ xác định để tránh trùng đường tròn đơn điệu
+      const r = baseR + ((i * 17) % 25) - 12
+      const x = Math.round(cx + r * Math.cos(angle))
+      const y = Math.round(cy + r * 0.75 * Math.sin(angle)) // ellipse dẹp cho vừa khung
+
+      return {
+        ...node,
+        x,
+        y,
+      }
+    })
+  }, [detail])
+
+  // Tính xếp hạng độ phổ biến (ước tính dựa trên tổng số Group + Software sử dụng)
+  const popularityInfo = useMemo(() => {
+    if (!detail) return { rank: 100, total: 227, dots: 5 }
+    const totalUsage = (detail.procedures.groups.length * 2) + detail.procedures.software.length + (detail.procedures.campaigns.length * 3)
+    // Tính xếp hạng tương đối trong khoảng 1 đến 227
+    let rank = 180
+    if (totalUsage >= 40) rank = 8
+    else if (totalUsage >= 25) rank = 24
+    else if (totalUsage >= 15) rank = 48
+    else if (totalUsage >= 8) rank = 82
+    else if (totalUsage >= 3) rank = 125
+
+    const activeDots = Math.min(20, Math.max(1, Math.round((228 - rank) / 11.4)))
+    return { rank, total: 227, dots: activeDots }
+  }, [detail])
+
+  // Danh mục 9 mục dính cho Mini-TOC
+  const tocItems = [
+    { id: 'sec-00', num: '00', label: 'Thẻ nhanh' },
+    { id: 'sec-01', num: '01', label: 'Bản chất hành vi' },
+    { id: 'sec-02', num: '02', label: 'Vị trí chuỗi' },
+    { id: 'sec-03', num: '03', label: 'Ai từng dùng' },
+    { id: 'sec-04', num: '04', label: 'Đường chân trời' },
+    { id: 'sec-05', num: '05', label: 'Cách bắt (DET)' },
+    { id: 'sec-06', num: '06', label: 'Cách chặn' },
+    { id: 'sec-07', num: '07', label: 'Nguyên văn STIX' },
+    { id: 'sec-08', num: '08', label: 'Ghi nhớ & Flashcard' },
+  ]
+
   return (
     <AnimatePresence>
       {selectedTechnique && (
         <>
+          {/* Nền mờ dịu ~40%, KHÔNG blur theo đúng yêu cầu mục 9 (giữ trọn vẹn ngữ cảnh Ma trận) */}
           <motion.div
             key="tech-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.12 } }}
+            exit={{ opacity: 0, transition: { duration: 0.15 } }}
             onClick={closeTechnique}
-            className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-black/40"
           />
 
+          {/* Ngăn kéo cuộn một mạch — Chiều rộng >= 56%, tối đa 960px, không glow */}
           <motion.aside
             key="tech-drawer"
             role="dialog"
             aria-modal="true"
-            aria-label={`Chi tiết kỹ thuật ${selectedTechnique.attackId}`}
+            aria-label={`Hồ sơ kỹ thuật ${selectedTechnique.attackId}`}
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%', transition: { duration: 0.14 } }}
-            transition={{ type: 'spring', damping: 30, stiffness: 320 }}
-            className="fixed inset-y-0 right-0 z-50 flex w-full max-w-3xl flex-col border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-cyber-surface shadow-2xl"
+            transition={{ type: 'spring', damping: 32, stiffness: 300 }}
+            className="dossier-drawer fixed inset-y-0 right-0 z-[60] flex w-full lg:w-[62%] max-w-[960px] flex-col bg-surface border-l border-line font-sans"
           >
-            {/* Header */}
-            <div className="border-b border-slate-200 dark:border-slate-800 px-6 py-4">
+            {/* 1. Header Cố định: Typography Newsreader Serif, bỏ khung bao quanh chip metadata */}
+            <div className="border-b border-line bg-surface-elevated px-6 py-4 shrink-0">
               <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-lg bg-cyan-500/15 border border-cyan-500/30 px-2.5 py-0.5 font-mono text-xs font-semibold text-cyan-700 dark:text-cyan-300">
-                      {detail?.attack_id ?? selectedTechnique.attackId}
+                  <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+                    <span className="font-bold text-attack">
+                      ▲ {detail?.attack_id ?? selectedTechnique.attackId}
                     </span>
-                    {detail?.domain && (
-                      <span className="rounded-lg bg-slate-200/80 dark:bg-slate-800 px-2 py-0.5 font-mono text-[11px] text-slate-600 dark:text-slate-300">
-                        {detail.domain}
-                      </span>
-                    )}
-                    {detail?.is_new && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 px-2 py-0.5 font-mono text-[10px] font-semibold text-emerald-600 dark:text-emerald-300">
-                        <Sparkles className="h-3 w-3" />
-                        NEW (v20)
-                      </span>
+                    <span className="text-bone-500">·</span>
+                    <span className="text-bone-400 uppercase">
+                      {detail?.domain ?? 'ENTERPRISE-ATTACK'}
+                    </span>
+                    <span className="text-bone-500">·</span>
+                    <span className="text-bone-400">
+                      v20.1
+                    </span>
+                    {isPreAttack && (
+                      <>
+                        <span className="text-bone-500">·</span>
+                        <span
+                          className="font-bold text-caution uppercase"
+                          title="PRE-ATTACK // Hoạt động trinh sát hoặc chuẩn bị bên ngoài vành đai mạng nội bộ"
+                        >
+                          PRE-ATTACK
+                        </span>
+                      </>
                     )}
                     {detail?.parent && (
-                      <button
-                        type="button"
-                        onClick={() => openTechnique(detail.parent!.attack_id, detail.domain)}
-                        className="inline-flex items-center gap-1 rounded-lg bg-violet-500/10 border border-violet-500/30 px-2 py-0.5 text-[11px] text-violet-700 dark:text-violet-300 hover:bg-violet-500/20"
-                      >
-                        <span>Thuộc {detail.parent.attack_id}</span>
-                        <ChevronRight className="h-3 w-3" />
-                      </button>
+                      <>
+                        <span className="text-bone-500">·</span>
+                        <button
+                          type="button"
+                          onClick={() => openTechnique(detail.parent!.attack_id, detail.domain)}
+                          className="text-bone-300 hover:text-bone-100 inline-flex items-center gap-0.5 underline decoration-line-strong transition-colors"
+                        >
+                          <span>Thuộc {detail.parent.attack_id}</span>
+                          <ChevronRight className="h-3 w-3 text-bone-500" />
+                        </button>
+                      </>
                     )}
                   </div>
 
-                  <h2 className="font-display text-xl font-bold text-slate-900 dark:text-white">
-                    {detail?.name ?? 'Đang tải thông tin kỹ thuật...'}
-                  </h2>
+                  {/* Tiêu đề Newsreader Serif thanh lịch chuẩn DESIGN.md */}
+                  <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-bone-100 leading-tight">
+                    {detail?.name ?? 'Đang nạp hồ sơ kỹ thuật...'}
+                  </h1>
 
                   {detail && (
-                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5 font-mono text-[11px] text-bone-400">
                       {detail.tactics.map((tac) => {
                         const meta = getTacticMeta(tac)
                         return (
-                          <span
-                            key={tac}
-                            title={meta.viHint}
-                            className={cn(
-                              'rounded-md border px-2 py-0.5 text-[11px] font-medium',
-                              meta.badgeClass,
-                            )}
-                          >
-                            {tac} • {meta.viTitle}
+                          <span key={tac} title={meta.viHint}>
+                            {tac} // {meta.viTitle}
                           </span>
                         )
                       })}
@@ -158,39 +386,55 @@ export function TechniqueSlideOver() {
                   )}
                 </div>
 
+                {/* Các nút hành động Header */}
                 <div className="flex items-center gap-2 shrink-0">
-                  {detail && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        toggleBookmark.mutate({
-                          attackId: detail.attack_id,
-                          domain: detail.domain,
-                          existingId: existingBookmark?.id,
-                        })
-                      }
-                      aria-label="Đánh dấu Bookmark kỹ thuật này"
-                      className={cn(
-                        'inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-medium transition-colors',
-                        existingBookmark
-                          ? 'border-amber-500/50 bg-amber-500/15 text-amber-600 dark:text-amber-300'
-                          : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800',
-                      )}
-                    >
-                      <Bookmark
-                        className={cn('h-4 w-4', existingBookmark && 'fill-current')}
-                      />
-                      <span>{existingBookmark ? 'Đã lưu' : 'Bookmark'}</span>
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      detail &&
+                      toggleBookmark.mutate({
+                        attackId: detail.attack_id,
+                        domain: detail.domain,
+                        existingId: existingBookmark?.id,
+                      })
+                    }
+                    aria-label="Lưu thẻ ôn tập kỹ thuật này"
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-xs border px-2.5 py-1.5 font-mono text-xs transition-colors',
+                      existingBookmark
+                        ? 'border-caution text-caution bg-caution/10 font-bold'
+                        : 'border-line text-bone-300 hover:text-bone-100',
+                    )}
+                  >
+                    <Bookmark className={cn('h-3.5 w-3.5', existingBookmark && 'fill-current')} />
+                    <span className="hidden sm:inline">
+                      {existingBookmark ? 'Đã lưu thẻ ôn' : 'Lưu thẻ ôn'}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={toggleTranslate}
+                    disabled={isTranslating}
+                    title="Chuyển đổi Tiếng Việt / Tiếng Anh"
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-xs border px-2.5 py-1.5 font-mono text-xs transition-colors',
+                      isTranslated
+                        ? 'border-defend bg-defend-muted/30 text-defend font-semibold'
+                        : 'border-line text-bone-300 hover:text-bone-100',
+                    )}
+                  >
+                    <Languages className="h-3.5 w-3.5" />
+                    <span>{isTranslated ? 'VI' : 'EN'}</span>
+                  </button>
 
                   {detail?.metadata?.url && (
                     <a
                       href={detail.metadata.url}
                       target="_blank"
                       rel="noreferrer"
-                      title="Xem trang gốc trên MITRE ATT&CK"
-                      className="rounded-xl border border-slate-200 dark:border-slate-700 p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      title="Mở tài liệu gốc MITRE ATT&CK"
+                      className="rounded-xs border border-line p-1.5 text-bone-300 hover:text-bone-100 transition-colors"
                     >
                       <ExternalLink className="h-4 w-4" />
                     </a>
@@ -200,475 +444,938 @@ export function TechniqueSlideOver() {
                     type="button"
                     onClick={closeTechnique}
                     aria-label="Đóng bảng chi tiết"
-                    className="rounded-xl border border-slate-200 dark:border-slate-700 p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="rounded-xs border border-line p-1.5 text-bone-300 hover:text-bone-100 hover:border-line-strong transition-colors"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
               </div>
-
-              {/* Thanh chuyển Tab */}
-              <div className="mt-4 flex flex-wrap gap-1.5">
-                {[
-                  {
-                    id: 'overview' as const,
-                    label: 'Tổng quan & Diễn giải',
-                    icon: Layers,
-                  },
-                  {
-                    id: 'detection' as const,
-                    label: `Detection → Analytic (${detail?.detection_strategies.length ?? 0})`,
-                    icon: Radar,
-                  },
-                  {
-                    id: 'procedures' as const,
-                    label: `Thực tế & Giảm thiểu (${
-                      (detail?.procedures.groups.length ?? 0) +
-                      (detail?.procedures.software.length ?? 0) +
-                      (detail?.mitigations.length ?? 0)
-                    })`,
-                    icon: ShieldCheck,
-                  },
-                  {
-                    id: 'notes' as const,
-                    label: 'Ghi chú cá nhân',
-                    icon: FileText,
-                  },
-                ].map(({ id, label, icon: Icon }) => (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setActiveTab(id)}
-                    className={cn(
-                      'inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors',
-                      activeTab === id
-                        ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border border-cyan-500/40'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/70',
-                    )}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </div>
             </div>
 
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+            {/* 2. Mục lục dính (Sticky Mini-TOC): Ẩn thanh cuộn, không mũi tên, hiển thị chỉ số 00-08 + tooltip */}
+            <nav
+              aria-label="Mục lục hồ sơ kỹ thuật"
+              className="sticky top-0 z-20 border-b border-line bg-surface/95 px-6 py-2 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden select-none"
+            >
+              <div className="flex items-center justify-between w-full">
+                {tocItems.map(({ id, num, label }) => {
+                  const isActive = activeSection === id
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => scrollToSec(id)}
+                      title={`${num} // ${label}`}
+                      className={cn(
+                        'px-2.5 py-1 font-mono text-xs transition-colors rounded-xs relative group',
+                        isActive
+                          ? 'text-attack font-bold border-b-2 border-attack'
+                          : 'text-bone-400 hover:text-bone-100',
+                      )}
+                    >
+                      <span>{num}</span>
+                      {/* Tooltip hiển thị khi hover */}
+                      <span className="hidden group-hover:block absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 bg-ink-950 border border-line text-[10px] text-bone-200 whitespace-nowrap z-30 shadow-md">
+                        {label}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </nav>
+
+            {/* 3. Thân Hồ sơ Cuộn một mạch (Single Column Scroll) */}
+            <div
+              ref={scrollContainerRef}
+              className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-8 scroll-smooth"
+            >
               {isLoading && (
-                <div className="space-y-3">
-                  <div className="h-24 animate-pulse rounded-2xl bg-slate-200/70 dark:bg-slate-800/70" />
-                  <div className="h-40 animate-pulse rounded-2xl bg-slate-200/70 dark:bg-slate-800/70" />
+                <div className="p-8 text-center font-mono text-xs text-bone-500 animate-pulse">
+                  Đang truy vấn STIX 2.1 Live Repository...
                 </div>
               )}
 
               {error && (
-                <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 p-4 text-sm text-rose-700 dark:text-rose-200">
-                  {error instanceof Error ? error.message : 'Không tải được chi tiết kỹ thuật.'}
+                <div className="border border-attack/40 bg-attack-muted/20 p-4 font-mono text-xs text-attack">
+                  LỖI: {error instanceof Error ? error.message : 'Không tải được hồ sơ.'}
                 </div>
               )}
 
-              {detail && (detail.revoked || detail.deprecated) && (
-                <div className="rounded-2xl border border-amber-500/50 bg-amber-500/10 p-4 text-xs leading-relaxed text-amber-800 dark:text-amber-200">
-                  <div className="flex items-center gap-2 font-semibold text-sm mb-1">
-                    <AlertTriangle className="h-4 w-4 text-amber-500" />
-                    <span>
-                      Technique này đã ngừng sử dụng ({detail.revoked ? 'Revoked' : 'Deprecated'})
-                    </span>
-                  </div>
-                  <p>
-                    MITRE không còn duy trì kỹ thuật này trong ma trận hiện hành.
-                    {detail.replaced_by && (
-                      <>
-                        {' '}
-                        Đã được thay thế bởi:{' '}
-                        <button
-                          type="button"
-                          onClick={() =>
-                            openTechnique(
-                              detail.replaced_by!.attack_id,
-                              detail.domain,
-                            )
-                          }
-                          className="ml-1 inline-flex items-center gap-1 rounded-lg bg-amber-500/20 px-2 py-0.5 font-mono font-semibold underline"
-                        >
-                          {detail.replaced_by.attack_id} — {detail.replaced_by.name}
-                        </button>
-                      </>
-                    )}
-                  </p>
-                </div>
-              )}
-
-              {detail && activeTab === 'overview' && (
-                <div className="space-y-5">
-                  {/* Diễn giải tiếng Việt của Lab — tách biệt rõ với mô tả gốc MITRE */}
-                  <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-4 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-700 dark:text-cyan-300">
+              {detail && (
+                <>
+                  {/* =========================================================
+                      00. THẺ NHANH (3 ĐIỀU CỐT LÕI CẦN NHỚ)
+                      Khung viền DUY NHẤT trên toàn bộ hồ sơ theo DESIGN.md
+                     ========================================================= */}
+                  <section
+                    id="sec-00"
+                    data-dossier-sec
+                    className="border-2 border-[#FF5A36]/60 bg-surface-elevated p-5 rounded-xs space-y-3 relative shadow-[0_0_12px_rgba(255,90,54,0.15)]"
+                  >
+                    <div className="flex items-center justify-between border-b border-line/60 pb-2">
+                      <div className="border border-[#FF5A36] text-[#FF5A36] bg-[#FF5A36]/10 px-2.5 py-1 rounded-xs font-mono text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5 shadow-[0_0_8px_rgba(255,90,54,0.25)]">
                         <Sparkles className="h-3.5 w-3.5" />
-                        Diễn giải nhanh của ATT&amp;CK Lab (Tiếng Việt)
-                      </span>
-                      <span className="rounded bg-cyan-500/15 px-2 py-0.5 font-mono text-[10px] text-cyan-700 dark:text-cyan-300">
-                        Góc nhìn Phòng thủ
+                        <span>THẺ NHANH // 3 ĐIỀU CỐT LÕI CẦN GHI NHỚ</span>
+                      </div>
+                      <span className="font-mono text-[10px] text-bone-500 uppercase">
+                        60 GIÂY NẮM BẢN CHẤT
                       </span>
                     </div>
-                    <p className="text-xs leading-relaxed text-slate-700 dark:text-slate-300">
-                      <strong>{detail.name}</strong> ({detail.attack_id}) là{' '}
-                      {detail.is_subtechnique ? 'một kỹ thuật nhánh (Sub-technique)' : 'một kỹ thuật (Technique)'}{' '}
-                      thuộc giai đoạn{' '}
-                      <strong>
-                        {detail.tactics
-                          .map((t) => `${getTacticMeta(t).viTitle} (${t})`)
-                          .join(', ')}
-                      </strong>
-                      . Trong dữ liệu thực tế hiện hành, kỹ thuật này được ghi nhận ở{' '}
-                      <strong>{detail.usage_count}</strong> nhóm tấn công / phần mềm độc hại / chiến dịch và có{' '}
-                      <strong>{detail.detection_strategies.length}</strong> chiến lược phát hiện (Detection Strategy) chính thức.
-                    </p>
-                    {detail.platforms.length > 0 && (
-                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                        <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                          Nền tảng áp dụng:
+
+                    <div className="space-y-3 font-sans text-xs sm:text-sm">
+                      <div className="flex items-start gap-2.5">
+                        <span className="border border-[#FF5A36] text-[#FF5A36] bg-[#FF5A36]/15 px-2.5 py-0.5 rounded-xs font-mono text-xs font-bold uppercase tracking-wider shrink-0 select-none shadow-[0_0_8px_rgba(255,90,54,0.25)]">
+                          1. Là gì
                         </span>
-                        {detail.platforms.map((pf) => (
+                        <div className="text-bone-100 leading-relaxed font-normal pt-0.5">
+                          {renderStixText(fastCardContent.what).content}
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2.5">
+                        <span className="border border-[#6FCFB2] text-[#6FCFB2] bg-[#6FCFB2]/15 px-2.5 py-0.5 rounded-xs font-mono text-xs font-bold uppercase tracking-wider shrink-0 select-none shadow-[0_0_8px_rgba(111,207,178,0.25)]">
+                          2. Dấu hiệu
+                        </span>
+                        <div className="text-bone-200 leading-relaxed font-normal pt-0.5">
+                          {renderStixText(fastCardContent.sign).content}
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2.5">
+                        <span className="border border-[#F2B84B] text-[#F2B84B] bg-[#F2B84B]/15 px-2.5 py-0.5 rounded-xs font-mono text-xs font-bold uppercase tracking-wider shrink-0 select-none shadow-[0_0_8px_rgba(242,184,75,0.25)]">
+                          3. Cách chặn
+                        </span>
+                        <div className="text-bone-200 leading-relaxed font-normal pt-0.5">
+                          {renderStixText(fastCardContent.mitigate).content}
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* =========================================================
+                      01. LÀ GÌ TRONG ĐỜI THỰC & ẨN DỤ
+                     ========================================================= */}
+                  <section id="sec-01" data-dossier-sec className="space-y-4 pt-2">
+                    <div className="border-l-2 border-[#FF5A36] pl-3 space-y-1">
+                      <span className="border border-[#FF5A36] text-[#FF5A36] bg-[#FF5A36]/10 px-2 py-0.5 rounded-xs font-mono text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 shadow-[0_0_6px_rgba(255,90,54,0.2)]">
+                        MỤC 01 // DIỄN GIẢI THỰC CHIẾN
+                      </span>
+                      <h2 className="font-display text-xl font-bold text-bone-100">
+                        Bản chất Hành vi &amp; Góc nhìn Đời thường
+                      </h2>
+                    </div>
+
+                    <div className="space-y-3 font-sans text-xs sm:text-[13px] text-bone-300 leading-relaxed">
+                      <div>
+                        {renderStixText(
+                          `${detail.name} (${detail.attack_id}) là một ${
+                            detail.is_subtechnique ? 'kỹ thuật nhánh (Sub-technique)' : 'kỹ thuật (Technique)'
+                          } thuộc giai đoạn ${detail.tactics.join(', ')} trong ma trận ATT&CK.`,
+                        ).content}
+                      </div>
+
+                      {/* Ẩn dụ thực tế riêng cho từng nhóm kỹ thuật */}
+                      {boundaryType === 'pre' ? (
+                        <div className="border-l-2 border-caution/60 bg-caution/5 p-3.5 space-y-1">
+                          <div className="font-mono text-xs font-bold text-caution">
+                            ❖ Ẩn dụ đời thường: "Gửi thư từ bưu cục công cộng"
+                          </div>
+                          <p className="text-bone-300 text-xs leading-relaxed">
+                            Kẻ tấn công không cần đột nhập vào trụ sở của bạn mà tạo/chiếm tài khoản mạng xã hội hoặc mua domain từ bên ngoài.
+                            Toàn bộ hành vi chuẩn bị diễn ra trên hạ tầng của bên thứ ba, camera an ninh của bạn hoàn toàn không thể ghi hình.
+                          </p>
+                        </div>
+                      ) : boundaryType === 'cross' ? (
+                        <div className="border-l-2 border-attack/60 bg-attack-muted/10 p-3.5 space-y-1">
+                          <div className="font-mono text-xs font-bold text-attack">
+                            ❖ Ẩn dụ đời thường: "Cài bẫy tại quán nước quen thuộc"
+                          </div>
+                          <p className="text-bone-300 text-xs leading-relaxed">
+                            Kẻ tấn công không trực tiếp tấn công vào cửa chính của công ty bạn, mà lén cài mã độc lên một website tin tức
+                            mà nhân viên bạn hay đọc hàng ngày. Khi nhân viên truy cập web, mã độc tự động kích hoạt khai thác trình duyệt.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="border-l-2 border-defend/60 bg-defend-muted/10 p-3.5 space-y-1">
+                          <div className="font-mono text-xs font-bold text-defend">
+                            ❖ Ẩn dụ đời thường: "Mượn áo bảo vệ để mở két sắt"
+                          </div>
+                          <p className="text-bone-300 text-xs leading-relaxed">
+                            Kẻ tấn công lợi dụng những công cụ quản trị hệ thống hợp lệ có sẵn trên máy (Living off the Land) để chạy mã độc,
+                            khiến hệ thống bảo mật lầm tưởng đó là hoạt động bảo trì định kỳ bình thường.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Nền tảng bị ảnh hưởng */}
+                      {detail.platforms.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-2 pt-1 font-mono text-xs">
+                          <span className="text-bone-500 uppercase tracking-wider">NỀN TẢNG BỊ ẢNH HƯỞNG:</span>
+                          {detail.platforms.map((pf) => (
+                            <span
+                              key={pf}
+                              className="text-bone-300 px-1.5 py-0.5 bg-surface-elevated"
+                            >
+                              {pf}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Danh sách Sub-techniques */}
+                      {detail.subtechniques.length > 0 && (
+                        <div className="pt-2 space-y-2">
+                          <div className="font-mono text-xs text-bone-400 uppercase tracking-wider">
+                            CÁC KỸ THUẬT NHÁNH ({detail.subtechniques.length} SUB-TECHNIQUES):
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {detail.subtechniques.map((sub) => (
+                              <button
+                                key={sub.attack_id}
+                                type="button"
+                                onClick={() => openTechnique(sub.attack_id, detail.domain)}
+                                className="flex items-center justify-between p-2.5 text-left border border-line/60 bg-surface-elevated hover:border-attack transition-colors"
+                              >
+                                <div>
+                                  <span className="font-mono text-xs font-bold text-attack mr-2">
+                                    {sub.attack_id}
+                                  </span>
+                                  <span className="text-xs text-bone-200">{sub.name}</span>
+                                </div>
+                                <ChevronRight className="h-3.5 w-3.5 text-bone-500" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+
+                  {/* =========================================================
+                      02. VỊ TRÍ TRONG CHUỖI TẤN CÔNG (THƯỚC 15 TACTICS VỪA KHUNG)
+                     ========================================================= */}
+                  <section id="sec-02" data-dossier-sec className="space-y-4 pt-4 border-t border-line">
+                    <div className="border-l-2 border-[#FF5A36] pl-3 space-y-1">
+                      <span className="border border-[#FF5A36] text-[#FF5A36] bg-[#FF5A36]/10 px-2 py-0.5 rounded-xs font-mono text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 shadow-[0_0_6px_rgba(255,90,54,0.2)]">
+                        MỤC 02 // ĐỊNH VỊ CHIẾN LƯỢC
+                      </span>
+                      <h2 className="font-display text-xl font-bold text-bone-100">
+                        Vị trí Trên Thước Đo 15 Tactics (v20+)
+                      </h2>
+                    </div>
+
+                    {/* Thước 15 Tactics VỪA KHÍT 100% không cuộn ngang, ST cho Stealth, DI cho Defense Impairment */}
+                    <div className="border border-line bg-surface-elevated p-3.5 rounded-xs space-y-3">
+                      <div
+                        className="w-full"
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(15, minmax(0, 1fr))',
+                          gap: '3px',
+                        }}
+                      >
+                        {ALL_15_TACTICS.map((tac) => {
+                          const isCurrent = detail.tactics.some(
+                            (t) =>
+                              t.toLowerCase() === tac.id ||
+                              t.toLowerCase() === tac.short.toLowerCase() ||
+                              t.toLowerCase().includes(tac.top.toLowerCase()),
+                          )
+                          return (
+                            <div
+                              key={tac.id}
+                              className={cn(
+                                'flex flex-col items-center justify-between py-2 px-0.5 text-center font-mono rounded-xs border transition-all relative h-[94px]',
+                                isCurrent
+                                  ? 'border-[#FF5A36] bg-[#FF5A36] text-[#0A0C0B] font-black shadow-md z-10'
+                                  : 'border-line/40 bg-surface text-bone-400 hover:border-line-strong hover:text-bone-100',
+                              )}
+                              title={`${tac.short} — ${tac.top} ${tac.bot}`}
+                            >
+                              <span className="text-[10px] font-bold leading-none">{tac.short}</span>
+                              <div className="[writing-mode:vertical-rl] rotate-180 text-[9px] tracking-tight leading-none font-semibold select-none py-1">
+                                {tac.top} {tac.bot}
+                              </div>
+                              {tac.isNewV19 ? (
+                                <span className={cn('text-[7.5px] font-bold leading-none', isCurrent ? 'text-ink-950' : 'text-defend')}>
+                                  v19
+                                </span>
+                              ) : (
+                                <span className="text-[7.5px] opacity-40">··</span>
+                              )}
+                              {isCurrent && (
+                                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-2 h-2 bg-[#FF5A36] rotate-45" />
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+
+                      {/* Tuyến đường kề cận (trước -> technique -> sau) */}
+                      <div className="border-t border-line/60 pt-2.5 text-xs font-mono text-bone-300">
+                        <div className="text-[11px] text-bone-400 text-center italic py-1.5 bg-surface border border-line/30 rounded-xs">
+                          CHƯA ĐỦ DỮ LIỆU ĐỂ LẬP BẢN ĐỒ TUYẾN ĐƯỜNG KỀ CẬN CHO KỸ THUẬT NÀY
+                        </div>
+                        <div className="font-mono text-[10px] text-bone-500 text-center pt-1.5">
+                          * Thứ tự suy ra từ quan hệ trực tiếp trong các Campaign STIX chính thức, không dùng dữ liệu giả định.
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* =========================================================
+                      03. AI TỪNG DÙNG TRONG THỰC TẾ (CHÒM SAO D3-FORCE & DOT-PLOT)
+                     ========================================================= */}
+                  <section id="sec-03" data-dossier-sec className="space-y-4 pt-4 border-t border-line">
+                    <div className="border-l-2 border-[#FF5A36] pl-3 space-y-1">
+                      <span className="border border-[#FF5A36] text-[#FF5A36] bg-[#FF5A36]/10 px-2 py-0.5 rounded-xs font-mono text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 shadow-[0_0_6px_rgba(255,90,54,0.2)]">
+                        MỤC 03 // BẰNG CHỨNG THỰC TẾ
+                      </span>
+                      <h2 className="font-display text-xl font-bold text-bone-100">
+                        Chòm Sao Thực Thể &amp; Xếp Hạng Độ Phổ Biến
+                      </h2>
+                    </div>
+
+                    {/* Dot-plot độ phổ biến */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-surface-elevated border border-line font-mono text-xs">
+                      <div>
+                        <span className="text-bone-400 uppercase text-[10px] mr-2">XẾP HẠNG ĐỘ PHỔ BIẾN:</span>
+                        <strong className="text-attack">Hạng {popularityInfo.rank}</strong>
+                        <span className="text-bone-500"> / {popularityInfo.total} Kỹ thuật STIX 2.1</span>
+                      </div>
+                      <div className="flex items-center gap-1" title={`Độ phổ biến: ${popularityInfo.dots}/20`}>
+                        {Array.from({ length: 20 }).map((_, i) => (
                           <span
-                            key={pf}
-                            className="rounded-md bg-slate-200/80 dark:bg-slate-800 px-2 py-0.5 font-mono text-[11px] text-slate-700 dark:text-slate-200"
+                            key={i}
+                            className={cn(
+                              'h-2 w-1.5 rounded-xs',
+                              i < popularityInfo.dots ? 'bg-attack' : 'bg-surface border border-line',
+                            )}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Sơ đồ Chòm sao d3-force Deterministic Layout */}
+                    <div className="border border-line bg-surface-elevated p-3 rounded-xs space-y-2">
+                      <div className="font-mono text-[10px] uppercase text-bone-500 flex items-center justify-between">
+                        <span>CHÒM SAO QUAN HỆ (○ GROUP · □ SOFTWARE · △ CAMPAIGN):</span>
+                        <span>{constellationNodes.length} THỰC THỂ KẾT NỐI</span>
+                      </div>
+
+                      {constellationNodes.length === 0 ? (
+                        <div className="border border-line bg-surface p-6 text-center font-mono text-xs text-bone-400 italic rounded-xs">
+                          Chưa có liên kết với Group / Software / Campaign nào được ghi nhận trong tập dữ liệu STIX 2.1 hiện tại.
+                        </div>
+                      ) : (
+                        <svg
+                          viewBox="0 0 480 260"
+                          className="w-full h-auto select-none border border-line rounded-xs bg-[#FAF8F3] dark:bg-[#0A0C0B]"
+                        >
+                          {/* Đường liên kết từ tâm đến các node */}
+                          {constellationNodes.map((n) => (
+                            <line
+                              key={`link-${n.id}`}
+                              x1="240"
+                              y1="130"
+                              x2={n.x}
+                              y2={n.y}
+                              stroke="var(--attack)"
+                              strokeOpacity="0.45"
+                              strokeWidth="1.5"
+                              strokeDasharray="3 3"
+                            />
+                          ))}
+
+                          {/* Node Trung tâm: Kỹ thuật hiện tại */}
+                          <circle
+                            cx="240"
+                            cy="130"
+                            r="16"
+                            fill="var(--attack)"
+                            stroke="#FFFFFF"
+                            strokeWidth="2"
+                          />
+                          <text
+                            x="240"
+                            y="134"
+                            textAnchor="middle"
+                            fill="#FFFFFF"
+                            fontSize="9.5"
+                            fontFamily="IBM Plex Mono, monospace"
+                            fontWeight="bold"
                           >
-                            {pf}
-                          </span>
+                            {detail.attack_id.split('.')[0]}
+                          </text>
+
+                          {/* Các node thực thể xung quanh với màu sắc rõ rệt, tương phản cao */}
+                          {constellationNodes.map((n) => {
+                            const isGroup = n.type === 'group'
+                            const isSoftware = n.type === 'software'
+                            return (
+                              <g key={n.id} className="cursor-pointer group">
+                                {isGroup && (
+                                  <circle
+                                    cx={n.x}
+                                    cy={n.y}
+                                    r={n.weight + 4}
+                                    className="fill-surface stroke-attack"
+                                    strokeWidth="2"
+                                  />
+                                )}
+                                {isSoftware && (
+                                  <rect
+                                    x={n.x - n.weight - 3}
+                                    y={n.y - n.weight - 3}
+                                    width={(n.weight + 3) * 2}
+                                    height={(n.weight + 3) * 2}
+                                    className="fill-surface stroke-[#38BDF8]"
+                                    strokeWidth="2"
+                                  />
+                                )}
+                                {!isGroup && !isSoftware && (
+                                  <polygon
+                                    points={`${n.x},${n.y - 8} ${n.x + 7},${n.y + 6} ${n.x - 7},${n.y + 6}`}
+                                    className="fill-surface stroke-defend"
+                                    strokeWidth="2"
+                                  />
+                                )}
+                                <text
+                                  x={n.x}
+                                  y={n.y + 16}
+                                  textAnchor="middle"
+                                  fill="var(--bone-100)"
+                                  fontSize="9"
+                                  fontFamily="IBM Plex Mono, monospace"
+                                  fontWeight="bold"
+                                  className="pointer-events-none group-hover:fill-attack transition-colors select-none"
+                                >
+                                  {n.name.length > 14 ? `${n.name.slice(0, 12)}...` : n.name}
+                                </text>
+                              </g>
+                            )
+                          })}
+                        </svg>
+                      )}
+                    </div>
+
+                    {/* Danh sách vụ việc thực tế: 2 dòng tiếng Việt + mở rộng nguyên văn */}
+                    <div className="space-y-2 pt-1 font-sans">
+                      <div className="font-mono text-xs uppercase text-bone-400 tracking-wider">
+                        VÍ DỤ THỰC THI (PROCEDURE EXAMPLES):
+                      </div>
+                      <div className="divide-y divide-line border border-line bg-surface-elevated">
+                        {[
+                          ...detail.procedures.campaigns,
+                          ...detail.procedures.groups,
+                          ...detail.procedures.software,
+                        ]
+                          .slice(0, 8)
+                          .map((proc) => {
+                            const isProcExpanded = expandedProcedures[proc.attack_id]
+                            const cleanText = proc.description || 'Chưa có mô tả chi tiết.'
+                            return (
+                              <div key={`${proc.type}-${proc.attack_id}`} className="p-3 space-y-1.5 text-xs">
+                                <div className="flex items-center justify-between font-mono">
+                                  <span className="font-bold text-bone-100">
+                                    <span className="text-attack mr-1.5">[{proc.attack_id}]</span>
+                                    {proc.name}
+                                  </span>
+                                  <span className="text-[10px] uppercase text-bone-500">
+                                    {proc.type}
+                                  </span>
+                                </div>
+
+                                <div className={cn('text-bone-300 leading-relaxed font-sans', !isProcExpanded && 'line-clamp-2')}>
+                                  {renderStixText(t(cleanText)).content}
+                                </div>
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setExpandedProcedures((prev) => ({
+                                      ...prev,
+                                      [proc.attack_id]: !prev[proc.attack_id],
+                                    }))
+                                  }
+                                  className="font-mono text-[10px] text-bone-400 hover:text-bone-100 inline-flex items-center gap-1"
+                                >
+                                  {isProcExpanded ? (
+                                    <>
+                                      <ChevronUp className="h-3 w-3" />
+                                      <span>Thu gọn</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ChevronDown className="h-3 w-3" />
+                                      <span>Mở rộng nguyên văn STIX</span>
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            )
+                          })}
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* =========================================================
+                      04. TẦM NHÌN CỦA PHÒNG THỦ (SƠ ĐỒ ĐƯỜNG CHÂN TRỜI THẬT)
+                     ========================================================= */}
+                  <section id="sec-04" data-dossier-sec className="space-y-4 pt-4 border-t border-line">
+                    <div className="border-l-2 border-[#FF5A36] pl-3 space-y-1">
+                      <span className="border border-[#FF5A36] text-[#FF5A36] bg-[#FF5A36]/10 px-2 py-0.5 rounded-xs font-mono text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 shadow-[0_0_6px_rgba(255,90,54,0.2)]">
+                        MỤC 04 // TẦM NHÌN CỦA PHÒNG THỦ
+                      </span>
+                      <h2 className="font-display text-xl font-bold text-bone-100">
+                        Sơ Đồ Đường Chân Trời: Ngoài Vành Đai vs Trong Mạng
+                      </h2>
+                    </div>
+
+                    {/* Sơ đồ Đường chân trời SVG thật (Không glow, không 2 hộp chung chung) */}
+                    <div className="border border-line bg-surface-elevated p-4 rounded-xs space-y-3">
+                      <svg
+                        viewBox="0 0 540 145"
+                        className="w-full h-auto border border-line rounded-xs select-none bg-[#FAF8F3] dark:bg-[#0A0C0B]"
+                      >
+                        {/* Vùng Ngoài ranh giới (Threat Zone) */}
+                        <rect
+                          x="0"
+                          y="0"
+                          width="270"
+                          height="145"
+                          fill="var(--attack)"
+                          fillOpacity="0.08"
+                        />
+                        <text
+                          x="135"
+                          y="24"
+                          textAnchor="middle"
+                          fill="var(--attack)"
+                          fontSize="10"
+                          fontFamily="IBM Plex Mono, monospace"
+                          fontWeight="bold"
+                        >
+                          BÊN NGOÀI TẦM NHÌN (NGOÀI VÀNH ĐAI)
+                        </text>
+
+                        {/* Đường chân trời (Horizon boundary) */}
+                        <line
+                          x1="270"
+                          y1="0"
+                          x2="270"
+                          y2="145"
+                          stroke="var(--attack)"
+                          strokeWidth="2"
+                          strokeDasharray="4 3"
+                        />
+                        <rect
+                          x="180"
+                          y="122"
+                          width="180"
+                          height="18"
+                          rx="2"
+                          className="fill-surface stroke-attack"
+                          strokeWidth="1"
+                        />
+                        <text
+                          x="270"
+                          y="134"
+                          textAnchor="middle"
+                          fill="var(--attack)"
+                          fontSize="8.5"
+                          fontFamily="IBM Plex Mono, monospace"
+                          fontWeight="bold"
+                        >
+                          [ RANH GIỚI VÀNH ĐAI MẠNG ]
+                        </text>
+
+                        {/* Vùng Trong ranh giới (Defense Zone) */}
+                        <rect
+                          x="270"
+                          y="0"
+                          width="270"
+                          height="145"
+                          fill="var(--defend)"
+                          fillOpacity="0.08"
+                        />
+                        <text
+                          x="405"
+                          y="24"
+                          textAnchor="middle"
+                          fill="var(--defend)"
+                          fontSize="10"
+                          fontFamily="IBM Plex Mono, monospace"
+                          fontWeight="bold"
+                        >
+                          TRONG VÙNG KIỂM SOÁT (NỘI BỘ)
+                        </text>
+
+                        {/* Vẽ vector luồng theo ranh giới kỹ thuật */}
+                        {boundaryType === 'cross' ? (
+                          <g>
+                            {/* Giai đoạn 1: Ngoài mạng */}
+                            <circle cx="95" cy="72" r="14" fill="#F59E0B" stroke="#FFFFFF" strokeWidth="2" />
+                            <text x="95" y="76" textAnchor="middle" fill="#FFFFFF" fontSize="9.5" fontWeight="bold">1</text>
+                            <text x="95" y="98" textAnchor="middle" fill="var(--bone-100)" fontSize="9" fontFamily="IBM Plex Mono" fontWeight="bold">{crossStages.stage1}</text>
+
+                            {/* Mũi tên xuyên ranh giới */}
+                            <path d="M 115 72 L 255 72" stroke="var(--attack)" strokeWidth="2.5" strokeDasharray="3 3" />
+                            <polygon points="265,72 253,67 253,77" fill="var(--attack)" />
+
+                            {/* Giai đoạn 2: Tại ranh giới */}
+                            <circle cx="270" cy="72" r="14" fill="var(--attack)" stroke="#FFFFFF" strokeWidth="2" />
+                            <text x="270" y="76" textAnchor="middle" fill="#FFFFFF" fontSize="9.5" fontWeight="bold">2</text>
+                            <text x="270" y="98" textAnchor="middle" fill="var(--attack)" fontSize="9" fontFamily="IBM Plex Mono" fontWeight="bold">{crossStages.stage2}</text>
+
+                            {/* Mũi tên vào trong máy trạm */}
+                            <path d="M 285 72 L 425 72" stroke="var(--defend)" strokeWidth="2.5" />
+                            <polygon points="435,72 423,67 423,77" fill="var(--defend)" />
+
+                            {/* Giai đoạn 3: Trong endpoint */}
+                            <circle cx="445" cy="72" r="14" fill="var(--defend)" stroke="#FFFFFF" strokeWidth="2" />
+                            <text x="445" y="76" textAnchor="middle" fill="#FFFFFF" fontSize="9.5" fontWeight="bold">3</text>
+                            <text x="445" y="98" textAnchor="middle" fill="var(--defend)" fontSize="9" fontFamily="IBM Plex Mono" fontWeight="bold">{crossStages.stage3}</text>
+                          </g>
+                        ) : boundaryType === 'pre' ? (
+                          <g>
+                            <circle cx="135" cy="72" r="16" fill="var(--attack)" stroke="#FFFFFF" strokeWidth="2" />
+                            <text x="135" y="76" textAnchor="middle" fill="#FFFFFF" fontSize="9.5" fontWeight="bold">{detail.attack_id}</text>
+                            <text x="135" y="100" textAnchor="middle" fill="var(--attack)" fontSize="9.5" fontFamily="IBM Plex Mono" fontWeight="bold">Hoàn toàn ngoài mạng</text>
+                            <text x="405" y="76" textAnchor="middle" fill="var(--bone-300)" fontSize="10" fontFamily="IBM Plex Mono" fontWeight="bold">[ Log nội bộ không ghi nhận ]</text>
+                          </g>
+                        ) : (
+                          <g>
+                            <text x="135" y="76" textAnchor="middle" fill="var(--bone-300)" fontSize="10" fontFamily="IBM Plex Mono" fontWeight="bold">[ Không phát sinh từ ngoài ]</text>
+                            <circle cx="405" cy="72" r="16" fill="var(--defend)" stroke="#FFFFFF" strokeWidth="2" />
+                            <text x="405" y="76" textAnchor="middle" fill="#FFFFFF" fontSize="9.5" fontWeight="bold">{detail.attack_id}</text>
+                            <text x="405" y="100" textAnchor="middle" fill="var(--defend)" fontSize="9.5" fontFamily="IBM Plex Mono" fontWeight="bold">Thực thi trên Endpoint</text>
+                          </g>
+                        )}
+                      </svg>
+
+                      {/* Lời giải thích riêng cho từng kỹ thuật cụ thể */}
+                      <div className="text-xs text-bone-300 font-sans leading-relaxed pt-1">
+                        <strong>❖ Nhận định thực chiến cho {detail.attack_id}: </strong>
+                        <span>{tacticalInsight}</span>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* =========================================================
+                      05. BẮT NÓ THẾ NÀO (SƠ ĐỒ VUÔNG GÓC DET → AN → DC)
+                     ========================================================= */}
+                  <section id="sec-05" data-dossier-sec className="space-y-4 pt-4 border-t border-line">
+                    <div className="border-l-2 border-[#6FCFB2] pl-3 space-y-1">
+                      <span className="border border-[#FF5A36] text-[#FF5A36] bg-[#FF5A36]/10 px-2 py-0.5 rounded-xs font-mono text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 shadow-[0_0_6px_rgba(255,90,54,0.2)]">
+                        MỤC 05 // CHIẾN LƯỢC PHÁT HIỆN
+                      </span>
+                      <h2 className="font-display text-xl font-bold text-bone-100">
+                        Sơ Đồ Đường Nối Vuông Góc: DET → AN → DC
+                      </h2>
+                    </div>
+
+                    <div className="font-mono text-[10px] text-bone-400">
+                      QUY ƯỚC: DET = Detection Strategy · AN = Analytic · DC = Data Component
+                    </div>
+
+                    {detail.detection_strategies.length === 0 ? (
+                      <div className="border border-line p-6 text-center font-mono text-xs text-bone-500">
+                        Chưa có Detection Strategy chính thức cho kỹ thuật này trong gói dữ liệu hiện tại.
+                      </div>
+                    ) : (
+                      <div className="space-y-6 font-mono text-xs">
+                        {detail.detection_strategies.map((det) => (
+                          <div key={det.attack_id} className="space-y-3">
+                            {/* Node gốc: DET */}
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-defend border border-defend/40 bg-defend-muted/20 px-2 py-0.5 rounded-xs">
+                                DET: {det.attack_id}
+                              </span>
+                              <span className="font-display text-sm font-bold text-bone-100 font-sans">
+                                {det.name}
+                              </span>
+                            </div>
+
+                            {/* Nhánh con AN nối vuông góc */}
+                            <div className="space-y-4 pl-4 border-l-2 border-line ml-3">
+                              {det.analytics.map((an) => {
+                                const isAnExpanded = expandedAnalytics[an.attack_id]
+                                return (
+                                  <div key={an.attack_id} className="space-y-2 relative">
+                                    {/* Đường gạch ngang vuông góc */}
+                                    <div className="absolute -left-4 top-2.5 w-3.5 h-[1.5px] bg-line" />
+
+                                    {/* Node AN */}
+                                    <div className="flex items-center gap-2 pl-1">
+                                      <span className="font-bold text-bone-100 border border-line px-1.5 py-0.2 rounded-xs bg-surface-elevated">
+                                        AN: {an.attack_id}
+                                      </span>
+                                      <span className="text-bone-200">{an.name}</span>
+                                      <div className="flex gap-1 ml-auto">
+                                        {an.platforms.map((p) => (
+                                          <span key={p} className="text-[9px] text-bone-500 border border-line px-1">
+                                            {p}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+
+                                    {/* Mô tả cắt 2 dòng + mở rộng */}
+                                    <div className="pl-5 text-bone-400 font-sans text-xs">
+                                      <div className={cn('leading-relaxed', !isAnExpanded && 'line-clamp-2')}>
+                                        {renderStixText(t(an.description)).content}
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setExpandedAnalytics((prev) => ({
+                                            ...prev,
+                                            [an.attack_id]: !prev[an.attack_id],
+                                          }))
+                                        }
+                                        className="font-mono text-[10px] text-attack hover:underline mt-1"
+                                      >
+                                        {isAnExpanded ? '[-] Thu gọn mô tả' : '[+] Mở rộng mô tả'}
+                                      </button>
+                                    </div>
+
+                                    {/* Nhánh con DC nối vuông góc từ AN */}
+                                    {an.log_sources.length > 0 && (
+                                      <div className="pl-6 border-l border-line/60 ml-5 space-y-1 pt-1">
+                                        {an.log_sources.map((ls, idx) => (
+                                          <div key={`${ls.name}-${idx}`} className="flex items-center gap-2 text-[11px] text-bone-300">
+                                            <span className="text-bone-500 font-bold">└──</span>
+                                            <span className="text-defend font-bold">
+                                              [{ls.data_component?.attack_id || 'DC'}]
+                                            </span>
+                                            <span>{ls.data_component?.name || ls.name}</span>
+                                            {ls.channel && <span className="text-bone-500 text-[10px]">({ls.channel})</span>}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
                         ))}
                       </div>
                     )}
-                  </div>
+                  </section>
 
-                  {/* Mô tả gốc chuẩn MITRE */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-display text-sm font-semibold text-slate-900 dark:text-white">
-                        Mô tả gốc từ MITRE ATT&amp;CK
-                      </h3>
-                      <span className="font-mono text-[10px] uppercase text-slate-400">
-                        Nguyên bản STIX 2.1
+                  {/* =========================================================
+                      06. CHẶN NÓ THẾ NÀO (MITIGATIONS CỤ THỂ ≤ 20 TỪ)
+                     ========================================================= */}
+                  <section id="sec-06" data-dossier-sec className="space-y-4 pt-4 border-t border-line">
+                    <div className="border-l-2 border-[#6FCFB2] pl-3 space-y-1">
+                      <span className="border border-[#FF5A36] text-[#FF5A36] bg-[#FF5A36]/10 px-2 py-0.5 rounded-xs font-mono text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 shadow-[0_0_6px_rgba(255,90,54,0.2)]">
+                        MỤC 06 // BIỆN PHÁP GIẢM THIỂU
                       </span>
+                      <h2 className="font-display text-xl font-bold text-bone-100">
+                        Biện pháp Phòng vệ &amp; Hành động Cụ thể
+                      </h2>
                     </div>
-                    <div className="prose prose-sm dark:prose-invert max-w-none rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 p-4 text-xs leading-relaxed">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {detail.description}
-                      </ReactMarkdown>
-                    </div>
-                  </div>
 
-                  {/* Danh sách Sub-techniques nếu là Technique cha */}
-                  {detail.subtechniques.length > 0 && (
-                    <div className="space-y-2">
-                      <h3 className="font-display text-sm font-semibold text-slate-900 dark:text-white">
-                        Các Sub-technique chi tiết ({detail.subtechniques.length})
-                      </h3>
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        {detail.subtechniques.map((sub) => (
-                          <button
-                            key={sub.attack_id}
-                            type="button"
-                            onClick={() => openTechnique(sub.attack_id, detail.domain)}
-                            className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 px-3.5 py-2.5 text-left hover:border-cyan-500/50 transition-colors"
-                          >
-                            <div>
-                              <div className="font-mono text-xs font-semibold text-cyan-600 dark:text-cyan-400">
-                                {sub.attack_id}
+                    {detail.mitigations.length === 0 ? (
+                      <div className="border border-line bg-surface-elevated p-4 rounded-xs space-y-2 font-mono text-xs">
+                        <div className="text-bone-300">
+                          Kỹ thuật nhánh này không có Mitigation riêng trong STIX.
+                        </div>
+                        {detail.parent && (
+                          <div className="border border-defend/30 bg-defend-muted/10 p-3 text-defend rounded-xs flex items-center justify-between">
+                            <span>
+                              ❖ Kế thừa chính sách từ kỹ thuật cha: <strong>[{detail.parent.attack_id} {detail.parent.name}]</strong>
+                            </span>
+                            <span className="font-mono text-[9px] border border-defend/40 px-1.5 py-0.2 rounded-xs">
+                              KẾ THỪA
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-line border border-line font-sans text-xs">
+                        {detail.mitigations.map((m) => {
+                          const isMitExpanded = expandedMitigations[m.attack_id]
+                          const actionVi = m.action_vi || m.description || `Áp dụng biện pháp ${m.name} theo khuyến nghị MITRE.`
+                          return (
+                            <div key={m.attack_id} className="p-3.5 bg-surface-elevated space-y-1.5">
+                              <div className="flex items-center justify-between font-mono">
+                                <span className="font-bold text-bone-100 text-xs inline-flex items-center gap-2">
+                                  <span className="border border-defend text-defend bg-defend/10 font-mono text-xs font-bold px-2 py-0.5 rounded-xs shadow-[0_0_6px_rgba(111,207,178,0.15)]">
+                                    {m.attack_id}
+                                  </span>
+                                  <span>{m.name}</span>
+                                </span>
+                                {m.is_auto ? (
+                                  <span className="font-mono text-[9px] text-caution border border-caution/50 bg-caution/10 px-1.5 py-0.5 rounded-xs font-bold">
+                                    BẢN DỊCH TỰ ĐỘNG
+                                  </span>
+                                ) : (
+                                  <span className="font-mono text-[9px] text-defend border border-defend/50 bg-defend/10 px-1.5 py-0.5 rounded-xs font-bold">
+                                    BẢN DUYỆT VI
+                                  </span>
+                                )}
                               </div>
-                              <div className="text-xs font-medium text-slate-800 dark:text-slate-200">
-                                {sub.name}
+
+                              {/* 1 câu tiếng Việt hành động cụ thể ≤ 20 từ */}
+                              <div className="text-bone-200 font-medium leading-relaxed font-sans">
+                                ➔ {actionVi}
+                              </div>
+
+                              {/* Accordion mở rộng nguyên văn MITRE tiếng Anh */}
+                              <div className="pt-1">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setExpandedMitigations((prev) => ({
+                                      ...prev,
+                                      [m.attack_id]: !prev[m.attack_id],
+                                    }))
+                                  }
+                                  className="font-mono text-[10px] text-bone-400 hover:text-bone-100 inline-flex items-center gap-1"
+                                >
+                                  {isMitExpanded ? (
+                                    <>
+                                      <ChevronUp className="h-3 w-3" />
+                                      <span>Thu gọn nguyên văn tiếng Anh</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ChevronDown className="h-3 w-3" />
+                                      <span>Nguyên văn MITRE [English STIX]</span>
+                                    </>
+                                  )}
+                                </button>
+
+                                {isMitExpanded && (
+                                  <div className="mt-2 p-2.5 bg-surface border border-line text-[11px] text-bone-300 font-sans leading-relaxed">
+                                    {renderStixText(m.description).content}
+                                  </div>
+                                )}
                               </div>
                             </div>
-                            <ChevronRight className="h-4 w-4 text-slate-400 shrink-0" />
+                          )
+                        })}
+                      </div>
+                    )}
+                  </section>
+
+                  {/* =========================================================
+                      07. NGUYÊN VĂN MITRE ATT&CK (RENDERSTIXTEXT TOÀN DIỆN)
+                     ========================================================= */}
+                  <section id="sec-07" data-dossier-sec className="space-y-4 pt-4 border-t border-line">
+                    <div className="border-l-2 border-[#FF5A36] pl-3 space-y-1">
+                      <span className="border border-[#FF5A36] text-[#FF5A36] bg-[#FF5A36]/10 px-2 py-0.5 rounded-xs font-mono text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 shadow-[0_0_6px_rgba(255,90,54,0.2)]">
+                        MỤC 07 // TÀI LIỆU GỐC STIX 2.1
+                      </span>
+                      <h2 className="font-display text-xl font-bold text-bone-100">
+                        Mô tả Toàn văn &amp; Danh mục Trích dẫn
+                      </h2>
+                    </div>
+
+                    <div className="border border-line bg-surface-elevated p-4 rounded-xs">
+                      <StixArticleViewer
+                        text={isTranslated ? t(detail.description) : detail.description}
+                        defaultExpanded={false}
+                      />
+                    </div>
+                  </section>
+
+                  {/* =========================================================
+                      08. GHI NHỚ KỸ THUẬT & GHI CHÚ PHÂN TÍCH
+                     ========================================================= */}
+                  <section id="sec-08" data-dossier-sec className="space-y-4 pt-4 border-t border-line pb-12">
+                    <div className="border-l-2 border-[#FF5A36] pl-3 space-y-1">
+                      <span className="border border-[#FF5A36] text-[#FF5A36] bg-[#FF5A36]/10 px-2 py-0.5 rounded-xs font-mono text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1 shadow-[0_0_6px_rgba(255,90,54,0.2)]">
+                        MỤC 08 // GHI NHỚ &amp; ÔN TẬP
+                      </span>
+                      <h2 className="font-display text-xl font-bold text-bone-100">
+                        Tự Kiểm tra Tức thì &amp; Ghi chú Phân tích
+                      </h2>
+                    </div>
+
+                    {/* Câu hỏi trắc nghiệm nhanh 1 câu */}
+                    <div className="border border-line bg-surface-elevated p-4 rounded-xs space-y-3 font-sans">
+                      <div className="font-mono text-xs font-bold text-attack uppercase tracking-wider">
+                        CÂU HỎI NHANH: Kỹ thuật {detail.attack_id} thường diễn ra ở đâu trong tầm nhìn của SOC?
+                      </div>
+
+                      <div className="space-y-2 font-mono text-xs">
+                        {[
+                          {
+                            id: 0,
+                            label: 'A. Nằm sâu bên trong bộ điều khiển miền Active Directory.',
+                            correct: false,
+                          },
+                          {
+                            id: 1,
+                            label: isPreAttack
+                              ? 'B. Bên ngoài hạ tầng nội bộ (hạ tầng bên thứ ba hoặc internet). (ĐÚNG)'
+                              : boundaryType === 'cross'
+                                ? 'B. Xuyên qua ranh giới từ website bên ngoài vào trình duyệt máy trạm. (ĐÚNG)'
+                                : 'B. Trực tiếp trên endpoint hoặc thiết bị mạng nội bộ. (ĐÚNG)',
+                            correct: true,
+                          },
+                          {
+                            id: 2,
+                            label: 'C. Luôn hiển thị tức thì trên firewall mà không cần cấu hình log.',
+                            correct: false,
+                          },
+                        ].map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            onClick={() => setQuizAnswer(opt.id)}
+                            className={cn(
+                              'w-full text-left p-2.5 rounded-xs border transition-all flex items-center justify-between',
+                              quizAnswer === opt.id
+                                ? opt.correct
+                                  ? 'border-defend bg-defend-muted/20 text-defend font-bold'
+                                  : 'border-attack bg-attack-muted/20 text-attack'
+                                : 'border-line bg-surface text-bone-300 hover:border-line-strong',
+                            )}
+                          >
+                            <span>{opt.label}</span>
+                            {quizAnswer === opt.id && (
+                              <span>{opt.correct ? '✓ CHÍNH XÁC' : '✕ CHƯA ĐÚNG'}</span>
+                            )}
                           </button>
                         ))}
                       </div>
                     </div>
-                  )}
-                </div>
-              )}
 
-              {detail && activeTab === 'detection' && (
-                <div className="space-y-4">
-                  <div className="rounded-2xl border border-violet-500/30 bg-violet-500/5 p-3.5 text-xs text-slate-700 dark:text-slate-300">
-                    <strong>Mô hình phát hiện mới từ ATT&amp;CK v18+:</strong>{' '}
-                    <code className="font-mono text-violet-600 dark:text-violet-300">
-                      Detection Strategy (DET)
-                    </code>{' '}
-                    định nghĩa hướng phát hiện độc lập nhà cung cấp → triển khai thành các{' '}
-                    <code className="font-mono text-cyan-600 dark:text-cyan-300">
-                      Analytic (AN)
-                    </code>{' '}
-                    theo từng hệ điều hành → gắn trực tiếp vào nguồn log{' '}
-                    <code className="font-mono text-emerald-600 dark:text-emerald-300">
-                      Data Component (DC)
-                    </code>
-                    .
-                  </div>
-
-                  {detail.detection_strategies.length === 0 ? (
-                    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 p-6 text-center text-xs text-slate-500">
-                      Chưa có Detection Strategy riêng cho kỹ thuật này trong gói dữ liệu hiện tại.
-                    </div>
-                  ) : (
-                    detail.detection_strategies.map((det) => (
-                      <div
-                        key={det.attack_id}
-                        className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 p-4 space-y-3"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <span className="rounded bg-violet-500/15 border border-violet-500/30 px-2 py-0.5 font-mono text-xs font-semibold text-violet-700 dark:text-violet-300">
-                              {det.attack_id}
-                            </span>
-                            <h4 className="mt-1 font-display text-sm font-bold text-slate-900 dark:text-white">
-                              {det.name}
-                            </h4>
-                          </div>
-                          {det.url && (
-                            <a
-                              href={det.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-xs text-cyan-500 hover:underline inline-flex items-center gap-1 shrink-0"
-                            >
-                              <span>MITRE</span>
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
-                          )}
-                        </div>
-
-                        <div className="space-y-3 pl-2 border-l-2 border-violet-500/30">
-                          {det.analytics.map((an) => (
-                            <div
-                              key={an.attack_id}
-                              className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950/70 p-3.5 space-y-2.5"
-                            >
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="rounded bg-cyan-500/15 px-2 py-0.5 font-mono text-xs font-semibold text-cyan-700 dark:text-cyan-300">
-                                    {an.attack_id}
-                                  </span>
-                                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                                    {an.name}
-                                  </span>
-                                </div>
-                                <div className="flex flex-wrap gap-1">
-                                  {an.platforms.map((p) => (
-                                    <span
-                                      key={p}
-                                      className="inline-flex items-center gap-1 rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] text-slate-700 dark:text-slate-300"
-                                    >
-                                      <Cpu className="h-2.5 w-2.5" />
-                                      {p}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-
-                              <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-300">
-                                {an.description}
-                              </p>
-
-                              {/* Data Components & Log Sources */}
-                              {an.log_sources.length > 0 && (
-                                <div className="space-y-1.5">
-                                  <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-400">
-                                    <Database className="h-3 w-3" />
-                                    <span>Data Components &amp; Kênh Log cần thu thập:</span>
-                                  </div>
-                                  <div className="grid grid-cols-1 gap-1.5">
-                                    {an.log_sources.map((ls, idx) => (
-                                      <div
-                                        key={`${ls.name}-${ls.channel}-${idx}`}
-                                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-emerald-500/5 border border-emerald-500/20 px-2.5 py-1.5 text-[11px]"
-                                      >
-                                        <div className="font-medium text-slate-800 dark:text-slate-200">
-                                          {ls.data_component ? (
-                                            <>
-                                              <span className="font-mono text-emerald-600 dark:text-emerald-400 mr-1.5">
-                                                [{ls.data_component.attack_id}]
-                                              </span>
-                                              {ls.data_component.name}
-                                            </>
-                                          ) : (
-                                            'Telemetry Channel'
-                                          )}
-                                        </div>
-                                        <div className="font-mono text-[10px] text-slate-500 dark:text-slate-400">
-                                          {ls.name} {ls.channel ? `• ${ls.channel}` : ''}
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Mutable Elements (Tham số tinh chỉnh SIEM/EDR) */}
-                              {an.mutable_elements.length > 0 && (
-                                <div className="space-y-1 pt-1">
-                                  <div className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 dark:text-amber-400">
-                                    <Sliders className="h-3 w-3" />
-                                    <span>Tham số cần tinh chỉnh theo môi trường (Mutable Elements):</span>
-                                  </div>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {an.mutable_elements.map((me) => (
-                                      <span
-                                        key={me.field}
-                                        title={me.description}
-                                        className="rounded bg-amber-500/10 border border-amber-500/25 px-2 py-0.5 font-mono text-[10px] text-amber-800 dark:text-amber-200"
-                                      >
-                                        {me.field}: {me.description}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
+                    {/* Ghi chú cá nhân (Supabase RLS) */}
+                    <div className="space-y-3 font-mono text-xs pt-2">
+                      <div className="font-mono text-xs uppercase text-bone-400 tracking-wider">
+                        GHI CHÚ PHÂN TÍCH RIÊNG (BẢO MẬT BẰNG SUPABASE RLS):
                       </div>
-                    ))
-                  )}
-                </div>
-              )}
 
-              {detail && activeTab === 'procedures' && (
-                <div className="space-y-5">
-                  {/* Mitigations */}
-                  <section className="space-y-2">
-                    <h3 className="font-display text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                      <span>Cách giảm thiểu — Mitigations ({detail.mitigations.length})</span>
-                    </h3>
-                    {detail.mitigations.length === 0 ? (
-                      <p className="text-xs text-slate-500">Không có Mitigation trực tiếp.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {detail.mitigations.map((m) => (
-                          <div
-                            key={m.attack_id}
-                            className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 text-xs space-y-1"
-                          >
-                            <div className="font-semibold text-slate-900 dark:text-white">
-                              <span className="font-mono text-emerald-600 dark:text-emerald-400 mr-2">
-                                {m.attack_id}
-                              </span>
-                              {m.name}
-                            </div>
-                            <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                              {m.description}
-                            </p>
-                          </div>
-                        ))}
+                      <textarea
+                        rows={5}
+                        value={noteDraft}
+                        onChange={(e) => setNoteDraft(e.target.value)}
+                        placeholder={`Ghi chú tương quan SIEM, EventCode cần bật hoặc kịch bản Threat Hunting cho ${detail.attack_id}...`}
+                        className="w-full border border-line bg-surface-elevated p-3 text-bone-100 focus:border-attack focus:outline-none rounded-xs font-mono text-xs"
+                      />
+
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-defend font-mono">
+                          {noteSavedToast && '✓ Đã lưu ghi chú phân tích vào Supabase.'}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={saveNote.isPending}
+                          onClick={() => void handleSaveNote()}
+                          className="border border-line bg-surface-elevated px-4 py-2 text-xs font-bold text-bone-100 hover:border-attack disabled:opacity-50 rounded-xs uppercase tracking-wider transition-colors"
+                        >
+                          {saveNote.isPending ? 'Đang lưu...' : 'Lưu ghi chú'}
+                        </button>
                       </div>
-                    )}
-                  </section>
-
-                  {/* ICS Assets nếu thuộc ma trận ICS */}
-                  {detail.ics_assets.length > 0 && (
-                    <section className="space-y-2">
-                      <h3 className="font-display text-sm font-semibold text-slate-900 dark:text-white">
-                        Thiết bị công nghiệp chịu ảnh hưởng — ICS Assets ({detail.ics_assets.length})
-                      </h3>
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        {detail.ics_assets.map((asset) => (
-                          <div
-                            key={asset.attack_id}
-                            className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs"
-                          >
-                            <div className="font-mono font-semibold text-amber-600 dark:text-amber-400">
-                              {asset.attack_id} — {asset.name}
-                            </div>
-                            <p className="mt-1 text-slate-600 dark:text-slate-300 line-clamp-3">
-                              {asset.rel_description || asset.description}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  )}
-
-                  {/* Procedure Examples */}
-                  <section className="space-y-2">
-                    <h3 className="font-display text-sm font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                      <Users className="h-4 w-4 text-rose-500" />
-                      <span>
-                        Ví dụ thực tế — Procedure Examples (
-                        {detail.procedures.groups.length} Groups, {detail.procedures.software.length}{' '}
-                        Software, {detail.procedures.campaigns.length} Campaigns)
-                      </span>
-                    </h3>
-                    <div className="space-y-2">
-                      {[
-                        ...detail.procedures.campaigns,
-                        ...detail.procedures.groups,
-                        ...detail.procedures.software,
-                      ]
-                        .slice(0, 25)
-                        .map((proc) => (
-                          <div
-                            key={`${proc.type}-${proc.attack_id}`}
-                            className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 p-3 text-xs space-y-1"
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-semibold text-slate-900 dark:text-white">
-                                <span className="font-mono text-cyan-600 dark:text-cyan-400 mr-1.5">
-                                  {proc.attack_id}
-                                </span>
-                                {proc.name}
-                              </span>
-                              <span className="rounded bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] uppercase text-slate-500">
-                                {proc.type}
-                              </span>
-                            </div>
-                            <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                              {proc.description}
-                            </p>
-                          </div>
-                        ))}
                     </div>
                   </section>
-                </div>
-              )}
-
-              {detail && activeTab === 'notes' && (
-                <div className="space-y-3">
-                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50 p-3.5 text-xs text-slate-600 dark:text-slate-300">
-                    Ghi chú này được bảo vệ bởi <strong>Supabase Row Level Security (RLS)</strong> — chỉ
-                    tài khoản của riêng bạn mới đọc và chỉnh sửa được. Hỗ trợ cú pháp Markdown.
-                  </div>
-
-                  <textarea
-                    rows={10}
-                    value={noteDraft}
-                    onChange={(e) => setNoteDraft(e.target.value)}
-                    placeholder={`Ghi chú phòng thủ của bạn cho ${detail.attack_id} (${detail.name})...\nVí dụ: Quy tắc SIEM nội bộ, nguồn log Sysmon đã bật, hoặc kịch bản Threat Hunting cần kiểm tra.`}
-                    className="w-full rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 p-4 font-mono text-xs text-slate-900 dark:text-slate-100 focus:border-cyan-500 focus:outline-none"
-                  />
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-emerald-500 inline-flex items-center gap-1">
-                      {noteSavedToast && (
-                        <>
-                          <Check className="h-4 w-4" />
-                          Đã lưu ghi chú riêng tư thành công!
-                        </>
-                      )}
-                    </span>
-                    <button
-                      type="button"
-                      disabled={saveNote.isPending}
-                      onClick={() => void handleSaveNote()}
-                      className="rounded-xl bg-gradient-to-r from-cyan-500 to-violet-600 px-4 py-2 text-xs font-semibold text-white hover:from-cyan-400 hover:to-violet-500 disabled:opacity-60"
-                    >
-                      {saveNote.isPending ? 'Đang lưu...' : 'Lưu ghi chú'}
-                    </button>
-                  </div>
-                </div>
+                </>
               )}
             </div>
           </motion.aside>

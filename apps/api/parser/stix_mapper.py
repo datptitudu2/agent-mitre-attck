@@ -503,3 +503,4 @@ def parse_stix_bundle(
         matrix_payload=matrix_payload,
         matrix_etag=matrix_etag,
     )
+

@@ -91,3 +91,4 @@ terms:
     definition_vi: >
       Cấu hình bảo mật, kiến trúc hoặc chính sách giúp ngăn chặn hoặc thu hẹp khả năng thành công của một Technique ngay từ đầu.
     example_vi: "Multi-factor Authentication, Network Segmentation, Execution Prevention."
+

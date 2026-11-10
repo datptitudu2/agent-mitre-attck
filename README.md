@@ -239,3 +239,4 @@ Dự án được thiết kế sẵn theo kiến trúc **1 Vercel Project duy nh
 - **MITRE ATT&CK®** và **ATT&CK®** là nhãn hiệu đã đăng ký của **The MITRE Corporation**.
 - Nguồn dữ liệu STIX 2.1 chính thức: [`mitre-attack/attack-stix-data`](https://github.com/mitre-attack/attack-stix-data) — `© The MITRE Corporation`, phát hành theo giấy phép [Apache License 2.0](https://github.com/mitre-attack/attack-stix-data/blob/master/LICENSE.txt).
 - Các phần *"Giải thích bình dân của Lab"*, kịch bản diễn giải tiếng Việt và *Kịch bản Minh hoạ AI (v20)* là nội dung biên soạn phục vụ mục đích học tập nội bộ của **ATT&CK Lab**, không phải tài liệu chính thức của MITRE.
+

@@ -25,3 +25,4 @@ Hãy xét một trong những hành vi phổ biến nhất trên Windows là đ�
   3. Dùng mật khẩu quản trị cục bộ khác nhau cho từng máy (**LAPS**).
 
 Khi đó, dù máy trạm đầu tiên bị lừa mở tệp độc hại, kẻ tấn công vẫn bị chặn đứng trước bức tường di chuyển ngang!
+

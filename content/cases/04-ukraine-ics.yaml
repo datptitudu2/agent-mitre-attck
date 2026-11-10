@@ -85,3 +85,4 @@ steps:
       Chuỗi lệnh điều khiển đóng/cắt gửi đi với tần suất tự động cao từ máy chủ trung gian mà không gắn với thao tác xác nhận của điều độ viên trên HMI.
     defender_vi: >
       Giám sát sâu lệnh điều khiển mức giao thức công nghiệp (Deep Packet Inspection cho IEC-104/DNP3/Modbus), kết hợp khoá liên động vật lý và quy trình khôi phục thủ công đã diễn tập.
+

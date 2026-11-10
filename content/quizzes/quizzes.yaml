@@ -126,3 +126,4 @@ quizzes:
         - "Bật toàn bộ rule mặc định mà không bao giờ kiểm thử hay tinh chỉnh"
       correct_index: 1
       explanation_vi: "Threat-Informed Defense tập trung nguồn lực vào giao điểm giữa hạ tầng thực tế của bạn và các kỹ thuật kẻ tấn công sử dụng phổ biến nhất."
+

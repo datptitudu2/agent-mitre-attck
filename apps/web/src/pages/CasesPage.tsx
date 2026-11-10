@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, Cpu, Layers, PlaySquare, ShieldAlert, Sparkles } from 'lucide-react'
+import { Cpu, PlaySquare, ShieldAlert, Sparkles } from 'lucide-react'
 import { AttackChainPlayer } from '@/components/cases/AttackChainPlayer'
 import { apiFetch } from '@/lib/api'
 import type { CaseStudyDetail, CaseStudySummary } from '@/lib/types'
@@ -39,41 +39,40 @@ export function CasesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="inline-flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-violet-500 dark:text-violet-400">
+    <div className="space-y-8 text-bone-100 font-sans">
+      {/* Header trang Case Studies — Phong cách Hồ sơ thực địa */}
+      <div className="border-b border-line pb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-1.5">
+          <div className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-attack">
             <PlaySquare className="h-3.5 w-3.5" />
-            <span>Interactive Attack Chain Studio</span>
+            <span>HỒ SƠ TÌNH BÁO CHIẾN DỊCH THỰC TẾ // ATTACK CHAIN STUDIO</span>
           </div>
-          <h1 className="mt-1 font-display text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">
-            Case Studies — Xem một Cuộc tấn công Thật diễn ra thế nào
+          <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-bone-100">
+            Mổ Xẻ Chuỗi Tấn Công Thực Chiến
           </h1>
-          <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-3xl">
-            Từng bước được dựng tự động từ dữ liệu STIX 2.1 chính thức của MITRE (tra cứu động theo tên, không gắn cứng ID),
-            kết hợp diễn giải đời thường tiếng Việt và công tắc lật góc nhìn{' '}
-            <strong>Attacker ⇄ Defender</strong>.
+          <p className="font-sans text-xs sm:text-sm text-bone-300 max-w-3xl leading-relaxed">
+            Dữ liệu được đối chiếu trực tiếp từ STIX 2.1 của MITRE (tra cứu động theo tên, không gắn cứng ID),
+            kết hợp góc nhìn đối kháng kép <strong>Attacker (▲) ⇄ Defender (❖)</strong> và chuỗi phát hiện chuẩn v18+.
           </p>
         </div>
 
-        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs text-emerald-700 dark:text-emerald-300 font-medium shrink-0">
-          100% Giáo dục Phòng thủ — Không chứa mã khai thác hay lệnh tấn công thực thi
+        <div className="border border-defend/40 bg-defend-muted/15 px-3.5 py-2 font-mono text-xs text-defend shrink-0 rounded-xs">
+          ❖ 100% GIÁO DỤC PHÒNG THỦ — KHÔNG CHỨA EXPLOIT/PAYLOAD ĐỘC HẠI
         </div>
       </div>
 
-      {/* Bộ chọn Case Study (6 thẻ ngang trực quan) */}
+      {/* Lưới 6 thẻ chọn Case Study (Giữ nguyên bố cục lưới, áp dụng design tokens) */}
       {isListLoading ? (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3].map((n) => (
             <div
               key={n}
-              className="h-28 animate-pulse rounded-2xl bg-slate-200/70 dark:bg-slate-800/70"
+              className="h-28 animate-pulse border border-line bg-ink-900 rounded-xs"
             />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
           {cases.map((item) => {
             const active = item.slug === selectedSlug
             return (
@@ -82,58 +81,57 @@ export function CasesPage() {
                 type="button"
                 onClick={() => handleSelectCase(item.slug)}
                 className={cn(
-                  'rounded-2xl border p-4 text-left transition-all flex flex-col justify-between gap-2.5',
+                  'border p-4 text-left transition-colors flex flex-col justify-between gap-3 rounded-xs relative group',
                   active
-                    ? 'border-cyan-500 bg-cyan-500/10 shadow-lg shadow-cyan-500/10'
-                    : 'glass-card hover:border-cyan-500/40',
+                    ? 'border-l-2 border-l-attack border-line-strong bg-ink-850 shadow-sm'
+                    : 'border-line bg-ink-900 hover:border-line-strong hover:bg-ink-850',
                 )}
               >
                 <div className="space-y-1.5">
-                  <div className="flex flex-wrap items-center justify-between gap-1.5">
-                    <span className="inline-flex items-center gap-1 rounded-md bg-slate-200 dark:bg-slate-800 px-2 py-0.5 font-mono text-[10px] font-semibold text-cyan-700 dark:text-cyan-300">
+                  <div className="flex flex-wrap items-center justify-between gap-1.5 font-mono text-[10px]">
+                    <span className="inline-flex items-center gap-1 border border-line bg-ink-950 px-2 py-0.5 font-bold uppercase text-bone-300 rounded-xs">
                       {item.domain === 'ics-attack' ? (
                         <>
-                          <Cpu className="h-3 w-3 text-amber-400" />
+                          <Cpu className="h-3 w-3 text-caution" />
                           ICS / OT
                         </>
                       ) : item.is_hypothetical ? (
                         <>
-                          <Sparkles className="h-3 w-3 text-emerald-400" />
-                          AI Scenario (v20)
+                          <Sparkles className="h-3 w-3 text-defend" />
+                          AI SCENARIO (v20)
                         </>
                       ) : (
                         <>
-                          <ShieldAlert className="h-3 w-3 text-rose-400" />
-                          {item.entity_attack_id ?? item.source_type}
+                          <ShieldAlert className="h-3 w-3 text-attack" />
+                          {item.entity_attack_id ?? item.source_type.toUpperCase()}
                         </>
                       )}
                     </span>
 
                     {item.is_hypothetical ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/40 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-300">
-                        <AlertTriangle className="h-2.5 w-2.5" />
-                        Giả định học tập
+                      <span className="text-caution font-semibold">
+                        [ GIẢ ĐỊNH ]
                       </span>
                     ) : (
-                      <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">
-                        {item.year_label} • {item.step_count} bước
+                      <span className="text-bone-500">
+                        {item.year_label} · {item.step_count} BƯỚC
                       </span>
                     )}
                   </div>
 
-                  <div className="font-display text-sm font-bold text-slate-900 dark:text-white line-clamp-1">
+                  <div className="font-display text-sm font-bold text-bone-100 group-hover:text-white transition-colors line-clamp-1">
                     {item.title}
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-bone-300 line-clamp-2 leading-relaxed font-sans">
                     {item.summary_vi}
                   </p>
                 </div>
 
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-1 font-mono text-[9px] text-bone-500">
                   {item.tags.map((t) => (
                     <span
                       key={t}
-                      className="rounded bg-slate-200/70 dark:bg-slate-800/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-600 dark:text-slate-300"
+                      className="border border-line/60 bg-ink-950 px-1.5 py-0.5 rounded-xs"
                     >
                       {t}
                     </span>
@@ -145,27 +143,44 @@ export function CasesPage() {
         </div>
       )}
 
-      {/* Trình phát Attack Chain Player */}
+      {/* Trình phát Attack Chain Player Đã Thiết Kế Lại Hoàn Toàn */}
       {isDetailLoading && (
-        <div className="h-[520px] animate-pulse rounded-3xl bg-slate-200/60 dark:bg-slate-800/60" />
+        <div className="h-[520px] animate-pulse border border-line bg-ink-900 rounded-xs" />
       )}
 
       {caseDetail && (
-        <div className="space-y-4">
+        <div id="case-player-stage" className="space-y-8 pt-2 scroll-mt-28">
           <AttackChainPlayer caseDetail={caseDetail} />
 
-          {/* Bài học rút ra cho đội ngũ phòng thủ */}
-          <div className="glass-card rounded-2xl p-5 flex items-start gap-3">
-            <Layers className="h-5 w-5 text-cyan-500 shrink-0 mt-0.5" />
-            <div className="space-y-1 text-xs leading-relaxed">
-              <div className="font-display text-sm font-bold text-slate-900 dark:text-white">
-                Tại sao Case Study này quan trọng với đội bảo mật?
-              </div>
-              <p className="text-slate-600 dark:text-slate-300">{caseDetail.why_it_matters_vi}</p>
+          {/* Khối Biên Tập: Vì sao Case Study này quan trọng */}
+          <div className="border-l-2 border-l-line-strong pl-5 py-2 space-y-2 border-t border-line/40 pt-6">
+            <div className="font-mono text-xs uppercase tracking-widest text-attack font-bold">
+              VÌ SAO CASE STUDY NÀY QUAN TRỌNG // DEFENSIVE VALUE
             </div>
+            <p className="font-display font-serif text-lg sm:text-xl text-bone-100 leading-relaxed max-w-4xl">
+              &ldquo;{caseDetail.why_it_matters_vi}&rdquo;
+            </p>
           </div>
         </div>
       )}
+
+      {/* Footer nhỏ gọn 1 dòng chữ Mono theo chuẩn DESIGN.md */}
+      <footer className="border-t border-line pt-4 pb-8 flex flex-wrap items-center justify-between gap-3 font-mono text-[11px] text-bone-500">
+        <div>
+          © MITRE ATT&amp;CK® v20.1 (STIX 2.1 Live Data) · ATT&amp;CK Lab Cyber Defense Studio
+        </div>
+        <div className="flex items-center gap-4">
+          <a
+            href="https://attack.mitre.org/resources/terms-of-use/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-bone-300 underline decoration-line transition-colors"
+          >
+            Terms of Use ↗
+          </a>
+          <span>100% Giáo dục Phòng thủ</span>
+        </div>
+      </footer>
     </div>
   )
 }

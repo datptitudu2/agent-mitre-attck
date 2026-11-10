@@ -27,3 +27,4 @@ Từ **v18 trở đi**, MITRE tái cấu trúc toàn bộ thành chuỗi **3 t�
    Mỗi Analytic liên kết trực tiếp tới các Data Component kèm tên kênh nhật ký cụ thể (ví dụ `WinEventLog:Security EventCode=4688` hoặc `auditd SYSCALL`).
 
 > **Mẹo thực hành trên ATT&CK Lab:** Bấm nút **"Thử ngay Technique mẫu"** bên dưới và chuyển sang tab **Detection → Analytic** để tận mắt xem cấu trúc cây 3 tầng này trên dữ liệu thật!
+

@@ -10,7 +10,6 @@ import {
   PlaySquare,
   Search,
   Settings,
-  Shield,
   Sparkles,
   Sun,
   Target,
@@ -39,6 +38,12 @@ export function AppShell() {
   const { profile, signOut } = useAuthStore()
   const { theme, toggleTheme } = useThemeStore()
   const setCommandPaletteOpen = useUiStore((s) => s.setCommandPaletteOpen)
+  const openTechnique = useUiStore((s) => s.openTechnique)
+
+  if (typeof window !== 'undefined') {
+    ;(window as any).__openTechnique = openTechnique
+    ;(window as any).__THEME_STORE__ = useThemeStore
+  }
 
   const { data: versionsData } = useQuery({
     queryKey: ['versions'],
@@ -57,18 +62,18 @@ export function AppShell() {
         Chuyển tới nội dung chính
       </a>
 
-      <header className="sticky top-0 z-40 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-cyber-bg/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-line bg-ink-950 text-bone-100 shadow-sm">
         <div className="mx-auto flex h-16 max-w-[1640px] items-center justify-between gap-3 px-4 sm:px-6">
           <div className="flex items-center gap-5">
             <NavLink to="/" className="flex items-center gap-2.5 shrink-0">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/20 to-violet-500/20 border border-cyan-500/40 shadow-neon-cyan">
-                <Shield className="h-5 w-5 text-cyan-500 dark:text-cyan-400" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-xs border border-attack/40 bg-attack-muted/20 text-attack font-mono font-bold text-xs">
+                ▲
               </div>
               <div>
-                <div className="font-display text-base font-bold tracking-tight text-slate-900 dark:text-white">
-                  ATT&amp;CK <span className="text-cyan-600 dark:text-cyan-400">Lab</span>
+                <div className="font-display text-base font-bold tracking-tight text-bone-100">
+                  ATT&amp;CK <span className="text-attack">Lab</span>
                 </div>
-                <div className="text-[10px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <div className="text-[10px] font-mono uppercase tracking-wider text-bone-500">
                   Cyber Defense Studio
                 </div>
               </div>
@@ -82,10 +87,10 @@ export function AppShell() {
                   end={end}
                   className={({ isActive }) =>
                     cn(
-                      'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors',
+                      'inline-flex items-center gap-1.5 rounded-xs px-2.5 py-1.5 text-xs font-mono transition-colors border',
                       isActive
-                        ? 'bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 border border-cyan-500/40 font-semibold'
-                        : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/70',
+                        ? 'border-line-strong bg-ink-850 text-bone-100 font-bold'
+                        : 'border-transparent text-bone-400 hover:text-bone-100 hover:border-line',
                     )
                   }
                 >
@@ -98,10 +103,10 @@ export function AppShell() {
                   to="/admin"
                   className={({ isActive }) =>
                     cn(
-                      'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors',
+                      'inline-flex items-center gap-1.5 rounded-xs px-2.5 py-1.5 text-xs font-mono transition-colors border',
                       isActive
-                        ? 'bg-violet-500/15 text-violet-800 dark:text-violet-300 border border-violet-500/40 font-semibold'
-                        : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/70',
+                        ? 'border-caution/50 bg-caution/10 text-caution font-bold'
+                        : 'border-transparent text-bone-400 hover:text-bone-100 hover:border-line',
                     )
                   }
                 >
@@ -117,11 +122,11 @@ export function AppShell() {
               type="button"
               onClick={() => setCommandPaletteOpen(true)}
               aria-label="Mở bảng tìm kiếm nhanh Ctrl+K"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100/90 dark:bg-slate-900/80 px-3 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:border-cyan-500/40"
+              className="inline-flex items-center gap-2 rounded-xs border border-line bg-ink-900 px-3 py-1.5 text-xs text-bone-300 hover:border-line-strong hover:text-bone-100 font-mono transition-colors"
             >
-              <Search className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
-              <span className="hidden sm:inline">Tìm nhanh...</span>
-              <kbd className="rounded bg-white dark:bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] text-slate-700 dark:text-slate-300">
+              <Search className="h-3.5 w-3.5 text-bone-400" />
+              <span className="hidden sm:inline">Tìm kiếm...</span>
+              <kbd className="rounded-xs border border-line bg-ink-950 px-1.5 py-0.5 font-mono text-[10px] text-bone-400">
                 Ctrl K
               </kbd>
             </button>
@@ -130,21 +135,21 @@ export function AppShell() {
               type="button"
               onClick={toggleTheme}
               aria-label="Đổi chế độ Sáng / Tối"
-              className="rounded-lg border border-slate-200 dark:border-slate-800 p-2 text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors"
+              className="rounded-xs border border-line bg-ink-900 p-2 text-bone-300 hover:border-line-strong hover:text-bone-100 transition-colors"
             >
               {theme === 'dark' ? (
-                <Sun className="h-4 w-4 text-amber-400" />
+                <Sun className="h-4 w-4 text-caution" />
               ) : (
-                <Moon className="h-4 w-4 text-slate-700" />
+                <Moon className="h-4 w-4 text-bone-100" />
               )}
             </button>
 
             {profile && (
-              <div className="hidden md:flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900/70 px-2.5 py-1.5 text-xs">
-                <span className="font-medium text-slate-800 dark:text-slate-200">
+              <div className="hidden md:flex items-center gap-2 rounded-xs border border-line bg-ink-900 px-2.5 py-1.5 text-xs font-mono">
+                <span className="font-medium text-bone-200">
                   {profile.display_name}
                 </span>
-                <span className="rounded bg-cyan-500/15 px-1.5 py-0.5 font-mono text-[10px] uppercase text-cyan-800 dark:text-cyan-300 font-semibold">
+                <span className="rounded-xs border border-defend/30 bg-defend-muted/20 px-1.5 py-0.5 font-mono text-[10px] uppercase text-defend font-bold">
                   {profile.role}
                 </span>
               </div>
@@ -153,7 +158,7 @@ export function AppShell() {
             <button
               type="button"
               onClick={() => void signOut()}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/35 bg-rose-500/10 px-2.5 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-500/20 dark:text-rose-300 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-xs border border-line bg-ink-900 px-2.5 py-1.5 text-xs font-mono text-bone-300 hover:border-attack/50 hover:text-attack transition-colors"
             >
               <LogOut className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Đăng xuất</span>
@@ -161,10 +166,10 @@ export function AppShell() {
           </div>
         </div>
 
-        {/* Thanh điều hướng cuộn ngang cho Tablet & Màn hình nhỏ (< 1280px) */}
+        {/* Thanh điều hướng cuộn ngang cho Tablet & Màn hình nhỏ (< 1280px) — 100% Nền ĐẶC không bị đè chữ */}
         <nav
           aria-label="Điều hướng di động và máy tính bảng"
-          className="xl:hidden flex items-center gap-1 overflow-x-auto border-t border-slate-200/70 dark:border-slate-800/70 px-4 py-2"
+          className="xl:hidden flex items-center gap-1 overflow-x-auto border-t border-line bg-ink-950 px-4 py-2 font-mono text-xs"
         >
           {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
             <NavLink
@@ -173,10 +178,10 @@ export function AppShell() {
               end={end}
               className={({ isActive }) =>
                 cn(
-                  'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium shrink-0',
+                  'inline-flex items-center gap-1.5 rounded-xs px-2.5 py-1 text-xs font-mono shrink-0 border',
                   isActive
-                    ? 'bg-cyan-500/15 text-cyan-800 dark:text-cyan-300 border border-cyan-500/40 font-semibold'
-                    : 'text-slate-700 dark:text-slate-300',
+                    ? 'border-line-strong bg-ink-850 text-bone-100 font-bold'
+                    : 'border-transparent text-bone-400 hover:text-bone-100',
                 )
               }
             >
@@ -189,10 +194,10 @@ export function AppShell() {
               to="/admin"
               className={({ isActive }) =>
                 cn(
-                  'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium shrink-0',
+                  'inline-flex items-center gap-1.5 rounded-xs px-2.5 py-1 text-xs font-mono shrink-0 border',
                   isActive
-                    ? 'bg-violet-500/15 text-violet-800 dark:text-violet-300 border border-violet-500/40 font-semibold'
-                    : 'text-slate-700 dark:text-slate-300',
+                    ? 'border-caution/50 bg-caution/10 text-caution font-bold'
+                    : 'border-transparent text-bone-400 hover:text-bone-100',
                 )
               }
             >
@@ -205,7 +210,7 @@ export function AppShell() {
 
       <main
         id="main-content"
-        className="flex-1 mx-auto w-full max-w-[1640px] px-4 py-5 sm:px-6"
+        className="flex-1 mx-auto w-full max-w-[1640px] px-4 pt-4 pb-8 sm:pt-6 sm:pb-12 scroll-mt-28"
       >
         <Outlet />
       </main>

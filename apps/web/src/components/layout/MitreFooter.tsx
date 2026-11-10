@@ -36,3 +36,4 @@ export function MitreFooter({ versionLabel }: MitreFooterProps) {
     </footer>
   )
 }
+

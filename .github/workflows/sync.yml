@@ -52,3 +52,4 @@ jobs:
             --domain "${{ inputs.domain || 'all' }}" \
             --version "${{ inputs.version || 'latest' }}" \
             --trigger-source "github_actions"
+

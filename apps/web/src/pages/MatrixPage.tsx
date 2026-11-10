@@ -61,6 +61,7 @@ const TacticColumnCard = memo(function TacticColumnCard({
   onOpenTechnique,
 }: TacticColumnProps) {
   const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({})
+  const activeAttackId = useUiStore((s) => s.selectedTechnique?.attackId)
   const meta = getTacticMeta(column.shortname)
   const Icon = meta.icon
 
@@ -122,12 +123,15 @@ const TacticColumnCard = memo(function TacticColumnCard({
                 : 'opacity-65'
           }
 
+          const isActive = tech.attack_id === activeAttackId
+
           return (
             <div
               key={tech.attack_id}
               className={cn(
-                'rounded-xl border border-slate-200/80 dark:border-slate-800/90 bg-slate-50/70 dark:bg-slate-950/60 transition-colors hover:border-cyan-500/50',
+                'rounded-xl border border-slate-200/80 dark:border-slate-800/90 bg-slate-50/70 dark:bg-slate-950/60 transition-all hover:border-cyan-500/50',
                 heatClass,
+                isActive && '!border-[#FF5A36] !ring-2 !ring-[#FF5A36] shadow-[0_0_20px_rgba(255,90,54,0.6)] !bg-[#FF5A36]/20 z-10',
               )}
             >
               <div className="flex items-start justify-between gap-1 p-2">
@@ -137,7 +141,14 @@ const TacticColumnCard = memo(function TacticColumnCard({
                   className="flex-1 text-left"
                 >
                   <div className="flex flex-wrap items-center gap-1">
-                    <span className="font-mono text-[10px] font-semibold text-cyan-700 dark:text-cyan-400">
+                    <span
+                      className={cn(
+                        'font-mono text-[10px] font-semibold',
+                        isActive
+                          ? 'text-[#FF5A36] font-black'
+                          : 'text-cyan-700 dark:text-cyan-400',
+                      )}
+                    >
                       {tech.attack_id}
                     </span>
                     {tech.is_new && (
@@ -185,26 +196,34 @@ const TacticColumnCard = memo(function TacticColumnCard({
               {/* Accordion Sub-techniques (chỉ mount khi mở để cuộn 60fps siêu mượt) */}
               {isExpanded && tech.subtechniques.length > 0 && (
                 <div className="border-t border-slate-200/70 dark:border-slate-800/80 bg-white/60 dark:bg-slate-900/70 p-1.5 space-y-1">
-                  {tech.subtechniques.map((sub) => (
-                    <button
-                      key={sub.attack_id}
-                      type="button"
-                      onClick={() => onOpenTechnique(sub.attack_id, domain)}
-                      className="flex w-full items-center justify-between gap-1 rounded-lg px-2 py-1 text-left text-[10px] hover:bg-cyan-500/10"
-                    >
-                      <span className="truncate text-slate-700 dark:text-slate-200">
-                        <span className="font-mono text-cyan-600 dark:text-cyan-400 mr-1">
-                          {sub.attack_id.split('.')[1] ? `.${sub.attack_id.split('.')[1]}` : sub.attack_id}
+                  {tech.subtechniques.map((sub) => {
+                    const isSubActive = sub.attack_id === activeAttackId
+                    return (
+                      <button
+                        key={sub.attack_id}
+                        type="button"
+                        onClick={() => onOpenTechnique(sub.attack_id, domain)}
+                        className={cn(
+                          'flex w-full items-center justify-between gap-1 rounded-lg px-2 py-1 text-left text-[10px] transition-all',
+                          isSubActive
+                            ? 'ring-2 ring-attack bg-attack-muted/40 font-bold text-attack shadow-[0_0_8px_rgba(255,90,54,0.3)]'
+                            : 'hover:bg-cyan-500/10',
+                        )}
+                      >
+                        <span className="truncate text-slate-700 dark:text-slate-200">
+                          <span className="font-mono text-cyan-600 dark:text-cyan-400 mr-1">
+                            {sub.attack_id.split('.')[1] ? `.${sub.attack_id.split('.')[1]}` : sub.attack_id}
+                          </span>
+                          {sub.name}
                         </span>
-                        {sub.name}
-                      </span>
-                      {sub.is_new && (
-                        <span className="rounded bg-emerald-500/20 px-1 font-mono text-[8px] text-emerald-400 shrink-0">
-                          NEW
-                        </span>
-                      )}
-                    </button>
-                  ))}
+                        {sub.is_new && (
+                          <span className="rounded bg-emerald-500/20 px-1 font-mono text-[8px] text-emerald-400 shrink-0">
+                            NEW
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
                 </div>
               )}
             </div>

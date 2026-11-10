@@ -82,3 +82,4 @@ steps:
       Hành vi truy cập ghi trực tiếp xuống ổ đĩa vật lý mức thấp và tạo tác vụ hẹn giờ khởi động lại hệ thống hàng loạt.
     defender_vi: >
       Duy trì bản sao lưu ngoại tuyến bất biến (immutable/offline backups) theo quy tắc 3-2-1 và diễn tập quy trình khôi phục thảm hoạ định kỳ.
+

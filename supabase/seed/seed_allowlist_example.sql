@@ -11,3 +11,4 @@ values
 on conflict (email) do update
   set role = excluded.role,
       note = excluded.note;
+

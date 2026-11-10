@@ -28,3 +28,4 @@ Trong ATT&CK, hoạt động tấn công ngoài đời thực được tổ ch�
 Trong thực tế điều tra sự cố:
 - Khi một đợt tấn công lớn vừa nổ ra, giới chuyên môn thấy rõ chuỗi hành vi liên kết với nhau (đủ để lập một hồ sơ **Campaign**), nhưng có thể mất nhiều tháng hoặc nhiều năm mới đủ bằng chứng quy gán (`attributed-to`) cho một **Group** cụ thể.
 - Hơn nữa, một **Group** có thể thay đổi bộ kỹ thuật theo từng năm: xem theo **Campaign** giúp đội phòng thủ thấy rõ chuỗi tấn công của một sự kiện cụ thể từ đầu đến cuối mà không bị lẫn với các kỹ thuật cũ cách đây 10 năm của nhóm đó.
+

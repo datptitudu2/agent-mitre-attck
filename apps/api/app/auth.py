@@ -176,3 +176,4 @@ async def require_admin(
             detail="Chỉ quản trị viên (role=admin) mới được thực hiện thao tác này.",
         )
     return user
+

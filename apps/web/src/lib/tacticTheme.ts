@@ -240,3 +240,4 @@ export function getTacticMeta(shortname: string): TacticVisualMeta {
     }
   )
 }
+

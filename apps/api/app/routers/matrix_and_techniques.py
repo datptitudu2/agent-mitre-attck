@@ -1,5 +1,7 @@
 """Endpoints đọc ma trận (/api/matrix/{domain}), chi tiết Technique (/api/techniques/{attack_id}) và Tìm kiếm (/api/search)."""
 
+import logging
+import re
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response, status
@@ -8,7 +10,63 @@ from apps.api.app.auth import AuthenticatedUser, get_current_user
 from apps.api.app.db import SupabaseDataClient, get_db_client
 from apps.api.parser.stix_loader import SUPPORTED_DOMAINS
 
+logger = logging.getLogger("attack_lab.techniques")
 router = APIRouter(tags=["Matrix & Techniques"])
+
+_TRANSLATIONS_TABLE_INITIALIZED = False
+
+CORE_MITIGATION_SEEDS = [
+    ("M1017", "mitigation", "Huấn luyện nhân viên kiểm tra danh tính người gửi qua kênh phụ trước khi nhấp liên kết."),
+    ("M1054", "mitigation", "Cấu hình phần mềm chỉ bật tính năng cần thiết, chặn chạy macro và mã kịch bản từ internet."),
+    ("M1056", "mitigation", "Tăng cường thu thập Threat Intelligence và phát hiện sớm thông tin tổ chức bị lộ lọt bên ngoài."),
+    ("M1021", "mitigation", "Chặn tải hoặc thực thi nội dung web đáng ngờ từ các tên miền chưa được xếp hạng an toàn."),
+    ("M1049", "mitigation", "Triển khai phần mềm phòng chống mã độc quét chữ ký và hành vi thời gian thực trên máy trạm."),
+    ("M1026", "mitigation", "Giới hạn tài khoản đặc quyền, áp dụng nguyên tắc đặc quyền tối thiểu cho mọi người dùng."),
+    ("M1051", "mitigation", "Cập nhật bản vá bảo mật hệ điều hành và trình duyệt ngay khi nhà cung cấp phát hành."),
+    ("M1041", "mitigation", "Bật cơ chế AppLocker hoặc WDAC chặn thực thi file nhị phân không rõ nguồn gốc."),
+    ("M1038", "mitigation", "Khoá quyền chạy file thực thi từ các thư mục tạm (AppData, Temp, Downloads)."),
+    ("M1031", "mitigation", "Bật hệ thống IPS/IDS ngăn chặn các gói tin khai thác dịch vụ biên và lỗ hổng mạng."),
+    ("M1020", "mitigation", "Giải mã và kiểm tra lưu lượng HTTPS để phát hiện mã độc ẩn trong kênh truyền mã hoá."),
+    ("M1030", "mitigation", "Phân đoạn mạng cô lập máy trạm với hệ thống máy chủ và cơ sở dữ liệu nhạy cảm."),
+    ("M1042", "mitigation", "Vô hiệu hoá hoặc gỡ bỏ hoàn toàn các dịch vụ và cổng giao tiếp thừa không dùng đến."),
+    ("M1016", "mitigation", "Quét lỗ hổng định kỳ toàn bộ bề mặt tấn công bên ngoài và các máy chủ nội bộ."),
+    ("M1047", "mitigation", "Bật kiểm toán hệ thống ghi lại đầy đủ nhật ký xác thực và thay đổi cấu hình trọng yếu."),
+    ("M1034", "mitigation", "Chặn thiết bị và phụ kiện USB/phần cứng lạ bằng chính sách Endpoint Security."),
+    ("M1035", "mitigation", "Thiết lập chính sách kiểm soát truy cập mạng (802.1X, chứng chỉ thiết bị) và hạn chế cấp DHCP."),
+    ("M1018", "mitigation", "Đào tạo người dùng nhận biết các kỹ thuật Social Engineering và báo cáo kịp thời."),
+    ("M1022", "mitigation", "Kiểm soát chặt chẽ việc thêm người dùng và cấp quyền đối với các tài khoản mạng xã hội tổ chức."),
+]
+
+
+async def _ensure_translations_db(db: SupabaseDataClient) -> None:
+    global _TRANSLATIONS_TABLE_INITIALIZED
+    if _TRANSLATIONS_TABLE_INITIALIZED:
+        return
+    try:
+        await db.execute_sql("""
+            CREATE TABLE IF NOT EXISTS public.attack_translations (
+                attack_id TEXT PRIMARY KEY,
+                type TEXT NOT NULL DEFAULT 'technique',
+                name_vi TEXT NOT NULL DEFAULT '',
+                action_vi TEXT NOT NULL DEFAULT '',
+                summary_vi TEXT NOT NULL DEFAULT '',
+                tactical_insight_vi TEXT NOT NULL DEFAULT '',
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+        """)
+        for aid, atype, act_vi in CORE_MITIGATION_SEEDS:
+            await db.execute_sql("""
+                INSERT INTO public.attack_translations (attack_id, type, action_vi)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (attack_id) DO UPDATE
+                SET action_vi = EXCLUDED.action_vi
+                WHERE public.attack_translations.action_vi = '';
+            """, (aid, atype, act_vi))
+        _TRANSLATIONS_TABLE_INITIALIZED = True
+    except Exception as e:
+        logger.warning(f"Could not ensure attack_translations table in DB: {e}")
+
 
 
 @router.get("/matrix/{domain}")
@@ -295,6 +353,117 @@ async def get_technique_detail(
             }
         )
 
+    # 3. Lấy thông tin bản dịch & hành vi phòng thủ từ DB (attack_translations)
+    await _ensure_translations_db(db)
+    all_needed_ids = [tech["attack_id"]] + [m["attack_id"] for m in mitigations if m.get("attack_id")]
+    db_translations: Dict[str, Dict[str, Any]] = {}
+    if all_needed_ids:
+        try:
+            trans_rows = await db.fetch_all_sql("""
+                SELECT attack_id, name_vi, action_vi, summary_vi, tactical_insight_vi
+                FROM public.attack_translations
+                WHERE attack_id = ANY(%s);
+            """, (all_needed_ids,))
+            for tr in trans_rows:
+                db_translations[tr["attack_id"]] = tr
+        except Exception as e:
+            logger.warning(f"Error reading attack_translations: {e}")
+
+    # Làm giàu mitigations: gán action_vi ngắn gọn (<= 20 từ) và đánh dấu bản dịch
+    for m in mitigations:
+        mid = m.get("attack_id")
+        tr = db_translations.get(mid)
+        if tr and tr.get("action_vi"):
+            m["action_vi"] = tr["action_vi"]
+            m["is_auto"] = False
+        else:
+            desc = m.get("description") or ""
+            clean_desc = re.sub(r"\[.*?\]\(.*?\)", "", desc)
+            clean_desc = re.sub(r"\(Citation:.*?\)", "", clean_desc).strip()
+            first_sent = clean_desc.split(". ")[0] if clean_desc else ""
+            words = first_sent.split()[:18]
+            m["action_vi"] = " ".join(words) + ("..." if len(first_sent.split()) > 18 else "") if words else f"Áp dụng biện pháp {m.get('name')} theo khuyến nghị MITRE."
+            m["is_auto"] = True
+
+    # Phân loại ranh giới vành đai: PRE-ATTACK, Cross-Boundary (xuyên vành đai), hoặc Internal (nội bộ)
+    tactics = tech.get("tactics") or []
+    tactics_lower = [t.lower() for t in tactics]
+    is_pre = any(t in ("reconnaissance", "resource-development") for t in tactics_lower)
+    is_cross = any(t in ("initial-access",) for t in tactics_lower)
+    boundary_type = "pre" if is_pre else ("cross" if is_cross else "internal")
+
+    # Xây dựng Fast Card 3 điều cốt lõi
+    clean_tech_desc = re.sub(r"\[.*?\]\(.*?\)", "", tech.get("description") or "")
+    clean_tech_desc = re.sub(r"\(Citation:.*?\)", "", clean_tech_desc).strip()
+    first_tech_sent = clean_tech_desc.split(". ")[0] if clean_tech_desc else ""
+    fast_what = f"{first_tech_sent}." if first_tech_sent else f"{tech['name']} ({tech['attack_id']}) là kỹ thuật thuộc giai đoạn {', '.join(tactics)}."
+
+    if boundary_type == "pre":
+        fast_sign = "Gần như KHÔNG để lại log trong mạng nội bộ (hoạt động xảy ra trên hạ tầng của bên thứ ba hoặc internet)."
+    elif boundary_type == "cross":
+        fast_sign = "Khởi phát từ kết nối web ngoài hoặc email, sau đó sinh tiến trình con bất thường hoặc kích hoạt khai thác trên máy trạm."
+    elif len(detection_strategies) > 0 and detection_strategies[0].get("analytics"):
+        top_strat = detection_strategies[0]
+        top_an = top_strat["analytics"][0]
+        top_log = top_an["log_sources"][0] if top_an.get("log_sources") else None
+        if top_log:
+            ch_name = top_log.get("channel") or (top_log.get("data_component") or {}).get("name") or "Kênh Telemetry"
+            fast_sign = f"Nhận diện qua log {top_log['name']} ({ch_name}) theo chiến lược {top_strat['attack_id']}."
+        else:
+            fast_sign = f"Phát hiện dựa trên chiến lược {top_strat['attack_id']}: {top_strat['name']}."
+    else:
+        fast_sign = "Đối chiếu hành vi tiến trình bất thường với các kết nối mạng và khóa Registry vừa tạo."
+
+    if len(mitigations) > 0:
+        top_mit = mitigations[0]
+        fast_mit = f"Áp dụng biện pháp [{top_mit['attack_id']} {top_mit['name']}]: {top_mit['action_vi']}"
+    elif parent_tech:
+        fast_mit = f"Chưa có mitigation riêng; áp dụng chính sách bảo vệ kế thừa từ kỹ thuật cha [{parent_tech['attack_id']} {parent_tech['name']}]."
+    else:
+        fast_mit = "Áp dụng nguyên tắc đặc quyền tối thiểu (Least Privilege) và phân tách mạng nghiêm ngặt."
+
+    fast_card = {
+        "what": fast_what,
+        "sign": fast_sign,
+        "mitigate": fast_mit,
+    }
+
+    # Dynamic Horizon Stages & Tactical Insight
+    db_tech_tr = db_translations.get(tech["attack_id"])
+    if db_tech_tr and db_tech_tr.get("tactical_insight_vi"):
+        tactical_insight = db_tech_tr["tactical_insight_vi"]
+    elif boundary_type == "pre":
+        tactical_insight = f"{tech['name']} ({tech['attack_id']}) diễn ra hoàn toàn bên ngoài tầm với của firewall và EDR nội bộ. Khi đối phương bắt đầu tác chiến, họ đã sở hữu tài nguyên hợp lệ. Trọng tâm phòng thủ là đào tạo nhận thức nhân sự và thu thập Threat Intelligence từ bên ngoài."
+    elif boundary_type == "cross":
+        tactical_insight = f"{tech['name']} ({tech['attack_id']}) là kỹ thuật xâm nhập xuyên vành đai: đối phương chuẩn bị tài nguyên bên ngoài và lợi dụng các kênh tương tác để đưa mã độc vào mạng nội bộ. Cần bảo vệ tại Gateway kết hợp kiểm soát chặt chẽ thiết bị đầu cuối."
+    else:
+        tactical_insight = f"{tech['name']} ({tech['attack_id']}) thực thi ngay bên trong hệ thống nội bộ của bạn. Đây là vùng kiểm soát chính của EDR/SIEM, cho phép phát hiện trực tiếp qua các Data Components như Process Creation và Memory Modification."
+
+    stage1 = "Hạ tầng / Tài nguyên ngoài" if boundary_type == "cross" else "Bên ngoài mạng tổ chức"
+    stage2 = "Xâm nhập qua ranh giới mạng" if boundary_type == "cross" else "Điểm tiếp xúc biên"
+    stage3 = "Thực thi mã trên Endpoint" if boundary_type == "cross" else "Vùng nội bộ được kiểm soát"
+
+    if tech["attack_id"].startswith("T1566"):
+        stage1 = "Email / Link gửi từ ngoài"
+        stage2 = "Người dùng mở tệp / liên kết"
+        stage3 = "Thực thi mã độc trên máy trạm"
+    elif tech["attack_id"] == "T1190":
+        stage1 = "Dịch vụ mạng lộ internet"
+        stage2 = "Khai thác lỗ hổng từ xa"
+        stage3 = "Chiếm quyền máy chủ biên"
+    elif tech["attack_id"].startswith("T1189"):
+        stage1 = "Web bị chèn mã độc"
+        stage2 = "Khai thác trình duyệt web"
+        stage3 = "Thực thi payload trên máy trạm"
+
+    horizon = {
+        "boundary_type": boundary_type,
+        "stage1": stage1,
+        "stage2": stage2,
+        "stage3": stage3,
+        "insight": tactical_insight,
+    }
+
     return {
         "domain": resolved_domain,
         "attack_id": tech["attack_id"],
@@ -320,6 +489,9 @@ async def get_technique_detail(
         "mitigations": mitigations,
         "detection_strategies": detection_strategies,
         "ics_assets": ics_assets,
+        "fast_card": fast_card,
+        "tactical_insight": tactical_insight,
+        "horizon": horizon,
     }
 
 

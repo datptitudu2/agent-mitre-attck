@@ -99,3 +99,4 @@ steps:
       Lưu lượng tải lên (upload) bất đối xứng kéo dài tới các miền mới đăng ký hoặc máy chủ đám mây không thuộc đối tác kinh doanh.
     defender_vi: >
       Phân tích bất thường lưu lượng TLS đầu ra (JA3/JA4, dung lượng upload, độ tuổi tên miền) và áp dụng danh sách kiểm soát truy cập mạng đầu ra (egress filtering).
+

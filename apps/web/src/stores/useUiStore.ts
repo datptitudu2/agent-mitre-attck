@@ -25,3 +25,8 @@ export const useUiStore = create<UiState>((set) => ({
   toggleCommandPalette: () =>
     set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
 }))
+
+if (typeof window !== 'undefined') {
+  ;(window as unknown as { __UI_STORE__?: typeof useUiStore }).__UI_STORE__ = useUiStore
+}
+

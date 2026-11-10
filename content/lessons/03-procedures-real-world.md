@@ -26,3 +26,4 @@ Khi mở tab **Thực tế & Giảm thiểu** của một Technique ngay trong A
 1. **Tiến trình cha – con (Parent–Child Process) là gì?** (Ví dụ: ứng dụng văn phòng Word/Excel hiếm khi nào tự nhiên gọi trình thông dịch kịch bản hệ thống).
 2. **Kết nối mạng đi kèm có hợp lý không?** (Một tiện ích cục bộ bỗng nhiên tải dữ liệu từ Internet).
 3. **Độ phổ biến thực tế ra sao?** Những Technique được hàng chục Group và Software cùng sử dụng chính là nơi bạn nên ưu tiên kiểm tra khả năng phát hiện trước tiên.
+

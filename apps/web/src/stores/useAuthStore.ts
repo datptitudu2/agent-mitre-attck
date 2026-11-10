@@ -140,3 +140,4 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ session: null, profile: null, error: null })
   },
 }))
+

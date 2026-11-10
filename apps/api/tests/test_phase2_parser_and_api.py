@@ -195,3 +195,4 @@ def test_semver_version_selection_with_agile_and_patch():
     target, prev = select_target_and_previous_version(versions, "latest")
     assert target.version == "20.1"
     assert prev is not None and prev.version == "20.0"
+

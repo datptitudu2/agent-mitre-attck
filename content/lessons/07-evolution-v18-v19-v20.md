@@ -28,3 +28,4 @@ Trong vòng chưa đầy 1 năm (**10/2025 → 10/2026**), MITRE đã thực hi�
 3. **ATT&CK v20 & v20.1 (Tháng 10–11/2026) — Kỷ nguyên Bảo mật Hệ thống AI & Mở rộng ICS:**
    - Bổ sung loạt kỹ thuật nhắm trực diện vào ứng dụng **AI / LLM** doanh nghiệp: `Direct Prompt Injection`, `Indirect Prompt Injection`, `AI Result Poisoning`, `Impair Autonomous Defenses`, `AI-Enabled Exfiltration`.
    - Phủ rộng Detection Strategies cho cả Enterprise và ICS, đồng thời tăng cường ngữ cảnh thiết bị công nghiệp (**ICS Assets**).
+

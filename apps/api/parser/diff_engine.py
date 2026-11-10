@@ -61,3 +61,4 @@ def compute_version_diff(
         "deprecated": deprecated,
         "revoked": revoked,
     }
+

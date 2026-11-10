@@ -25,3 +25,4 @@ Sai lầm phổ biến nhất khi mới áp dụng ATT&CK là cố gắng đánh
    Chuyển sang phân hệ **Coverage Lab** ngay trên thanh menu, đánh dấu những kỹ thuật đội đã thực sự thu thập đủ **Data Component** và có **Analytic** hoạt động (mức `100` nếu tự tin, mức `50` nếu mới phủ một phần), sau đó xem danh sách **"Gợi ý Technique phổ biến chưa được cover"**.
 4. **Kiểm chứng định kỳ (Purple Team):**
    Mỗi tháng chọn 2–3 kỹ thuật trọng tâm, cùng nhau kiểm tra trên môi trường thử nghiệm xem log có về đúng SIEM và cảnh báo có kích hoạt đúng như kỳ vọng hay không, rồi xuất tệp **ATT&CK Navigator JSON** để lưu mốc tiến bộ của cả đội!
+

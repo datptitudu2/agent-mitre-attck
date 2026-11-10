@@ -77,3 +77,4 @@ steps:
       Trình duyệt hoặc dịch vụ backend của ứng dụng AI phát sinh yêu cầu tải tài nguyên tới tên miền lạ có chứa chuỗi tham số dài bất thường ngay trong lúc hiển thị câu trả lời.
     defender_vi: >
       Áp dụng Content Security Policy (CSP) chặn tuyệt đối việc kết xuất ảnh/liên kết tới tên miền ngoài từ khung hội thoại AI, kiểm tra DLP trên đầu ra mô hình và giới hạn quyền truy cập dữ liệu của AI theo đúng quyền tối thiểu của người dùng.
+

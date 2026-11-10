@@ -23,7 +23,7 @@ export function CommandPalette() {
   const [debounced, setDebounced] = useState('')
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebounced(query.trim()), 180)
+    const timer = setTimeout(() => setDebounced(query.trim()), 200)
     return () => clearTimeout(timer)
   }, [query])
 
@@ -32,7 +32,8 @@ export function CommandPalette() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         setCommandPaletteOpen(!commandPaletteOpen)
-      } else if (e.key === 'Escape' && commandPaletteOpen) {
+      }
+      if (e.key === 'Escape' && commandPaletteOpen) {
         setCommandPaletteOpen(false)
       }
     }
@@ -41,28 +42,28 @@ export function CommandPalette() {
   }, [commandPaletteOpen, setCommandPaletteOpen])
 
   const { data } = useQuery({
-    queryKey: ['global-search', debounced],
-    enabled: commandPaletteOpen && debounced.length >= 1,
+    queryKey: ['search', debounced],
+    enabled: debounced.length >= 2,
     queryFn: () =>
       apiFetch<{ results: SearchResultItem[] }>(
-        `/api/search?q=${encodeURIComponent(debounced)}&include_deprecated=true&limit=20`,
+        `/api/search?q=${encodeURIComponent(debounced)}&include_deprecated=true&limit=15`,
       ),
   })
 
-  const { data: curriculumData } = useQuery({
+  const { data: curriculum } = useQuery({
     queryKey: ['curriculum'],
     enabled: commandPaletteOpen,
     queryFn: () => apiFetch<CurriculumResponse>('/api/lessons'),
   })
 
-  const matchedLessons = (curriculumData?.lessons ?? []).filter(
-    (l) =>
-      !debounced ||
-      l.title.toLowerCase().includes(debounced.toLowerCase()) ||
-      l.badge_label.toLowerCase().includes(debounced.toLowerCase()),
-  )
-
   if (!commandPaletteOpen) return null
+
+  const matchedLessons = (curriculum?.lessons ?? []).filter((l) =>
+    debounced.length >= 2
+      ? l.title.toLowerCase().includes(debounced.toLowerCase()) ||
+        l.slug.toLowerCase().includes(debounced.toLowerCase())
+      : false,
+  )
 
   const runAndClose = (fn: () => void) => {
     setCommandPaletteOpen(false)
@@ -75,37 +76,37 @@ export function CommandPalette() {
       role="dialog"
       aria-modal="true"
       aria-label="Bảng tìm kiếm nhanh ATT&CK Lab"
-      className="fixed inset-0 z-50 flex items-start justify-center bg-slate-950/65 backdrop-blur-sm pt-20 px-4"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-ink-950/80 backdrop-blur-md pt-20 px-4"
       onClick={() => setCommandPaletteOpen(false)}
     >
       <div
-        className="w-full max-w-2xl overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-cyber-surface shadow-2xl"
+        className="w-full max-w-2xl overflow-hidden rounded-xs border border-line-strong bg-ink-900 shadow-2xl font-sans"
         onClick={(e) => e.stopPropagation()}
       >
         <Command shouldFilter={false} className="w-full">
-          <div className="flex items-center border-b border-slate-200 dark:border-slate-800 px-4">
-            <Search className="h-4 w-4 text-cyan-500 mr-3 shrink-0" />
+          <div className="flex items-center border-b border-line px-4 bg-ink-950">
+            <Search className="h-4 w-4 text-attack mr-3 shrink-0" />
             <Command.Input
               autoFocus
               value={query}
               onValueChange={setQuery}
               placeholder="Nhập mã hoặc tên (vd: T1059, Prompt, APT32, SolarWinds, DET0053)..."
-              className="h-12 w-full bg-transparent text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
+              className="h-12 w-full bg-transparent text-sm text-bone-100 placeholder:text-bone-500 focus:outline-none font-mono"
             />
             <button
               type="button"
               onClick={() => setCommandPaletteOpen(false)}
-              className="rounded-lg p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              className="rounded-xs p-1 text-bone-400 hover:text-bone-100 transition-colors"
             >
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          <Command.List className="max-h-96 overflow-y-auto p-2">
+          <Command.List className="max-h-96 overflow-y-auto p-2 space-y-1">
             {debounced.length > 0 &&
               (data?.results ?? []).length === 0 &&
               matchedLessons.length === 0 && (
-                <Command.Empty className="py-8 text-center text-xs text-slate-500">
+                <Command.Empty className="py-8 text-center font-mono text-xs text-bone-500">
                   Không tìm thấy đối tượng phù hợp với &ldquo;{debounced}&rdquo;.
                 </Command.Empty>
               )}
@@ -113,7 +114,7 @@ export function CommandPalette() {
             {matchedLessons.length > 0 && debounced.length > 0 && (
               <Command.Group
                 heading="Bài học trong Learning Path"
-                className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
+                className="px-2 py-1.5 font-mono text-[10px] uppercase tracking-wider text-bone-500"
               >
                 {matchedLessons.map((l) => (
                   <Command.Item
@@ -122,15 +123,15 @@ export function CommandPalette() {
                     onSelect={() =>
                       runAndClose(() => navigate(`/learn?lesson=${encodeURIComponent(l.slug)}`))
                     }
-                    className="flex cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 aria-selected:bg-cyan-500/15"
+                    className="flex cursor-pointer items-center justify-between rounded-xs px-3 py-2 text-xs text-bone-200 aria-selected:bg-attack-muted/30 aria-selected:text-bone-100 transition-colors"
                   >
                     <div className="flex items-center gap-2">
-                      <BookOpen className="h-3.5 w-3.5 text-cyan-500" />
+                      <BookOpen className="h-3.5 w-3.5 text-attack" />
                       <span>
                         Bài {l.order}: {l.title}
                       </span>
                     </div>
-                    <span className="font-mono text-[10px] text-slate-400">{l.reading_minutes}p</span>
+                    <span className="font-mono text-[10px] text-bone-500">{l.reading_minutes}p</span>
                   </Command.Item>
                 ))}
               </Command.Group>
@@ -139,7 +140,7 @@ export function CommandPalette() {
             {(data?.results ?? []).length > 0 && (
               <Command.Group
                 heading="Kết quả từ cơ sở dữ liệu MITRE ATT&CK"
-                className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
+                className="px-2 py-1.5 font-mono text-[10px] uppercase tracking-wider text-bone-500"
               >
                 {(data?.results ?? []).map((item) => (
                   <Command.Item
@@ -160,20 +161,20 @@ export function CommandPalette() {
                         }
                       })
                     }
-                    className="flex cursor-pointer items-center justify-between rounded-xl px-3 py-2.5 text-xs text-slate-700 dark:text-slate-200 aria-selected:bg-cyan-500/15 aria-selected:text-cyan-700 dark:aria-selected:text-cyan-300"
+                    className="flex cursor-pointer items-center justify-between rounded-xs px-3 py-2.5 text-xs text-bone-200 aria-selected:bg-attack-muted/30 aria-selected:text-bone-100 transition-colors"
                   >
                     <div className="flex items-center gap-2.5">
-                      <span className="rounded bg-slate-200 dark:bg-slate-800 px-2 py-0.5 font-mono font-semibold text-cyan-600 dark:text-cyan-400">
+                      <span className="rounded-xs border border-attack/30 bg-attack-muted/20 px-2 py-0.5 font-mono font-bold text-attack text-xs">
                         {item.attack_id}
                       </span>
-                      <span className="font-medium">{item.name}</span>
+                      <span className="font-medium text-bone-100">{item.name}</span>
                       {(item.revoked || item.deprecated) && (
-                        <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] text-amber-600 dark:text-amber-300">
+                        <span className="rounded-xs border border-caution/30 bg-caution/10 px-1.5 py-0.5 font-mono text-[10px] text-caution">
                           Deprecated → {item.replaced_by_attack_id ?? 'N/A'}
                         </span>
                       )}
                     </div>
-                    <span className="font-mono text-[10px] text-slate-400">
+                    <span className="font-mono text-[10px] text-bone-500">
                       {item.domain.replace('-attack', '')} • {item.type}
                     </span>
                   </Command.Item>
@@ -183,7 +184,7 @@ export function CommandPalette() {
 
             <Command.Group
               heading="Điều hướng nhanh các phân hệ"
-              className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400"
+              className="px-2 py-1.5 font-mono text-[10px] uppercase tracking-wider text-bone-500"
             >
               {[
                 { label: 'Mở Matrix Explorer (Enterprise 15 Tactics)', to: '/matrix', icon: Grid3X3 },
@@ -197,9 +198,9 @@ export function CommandPalette() {
                   key={to}
                   value={label}
                   onSelect={() => runAndClose(() => navigate(to))}
-                  className="flex cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 aria-selected:bg-cyan-500/15"
+                  className="flex cursor-pointer items-center gap-2.5 rounded-xs px-3 py-2 text-xs text-bone-200 aria-selected:bg-line transition-colors"
                 >
-                  <Icon className="h-4 w-4 text-cyan-500" />
+                  <Icon className="h-4 w-4 text-attack" />
                   <span>{label}</span>
                 </Command.Item>
               ))}

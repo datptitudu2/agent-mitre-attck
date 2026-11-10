@@ -29,3 +29,4 @@ Khi nhìn vào bảng Ma trận ATT&CK khổng lồ, bạn chỉ cần nhớ 3 c
    Kẻ tấn công ngoài đời không cần đi đủ tất cả các cột; họ chỉ dùng những bước cần thiết để đạt mục tiêu, thậm chí lặp lại vòng `Discovery → Lateral Movement → Credential Access` nhiều lần.
 3. **Tại sao phải chia nhỏ tới Sub-technique?**
    Nếu bạn nói với kỹ sư SIEM *"hãy viết rule bắt Phishing"* thì quá rộng. Nhưng nếu chỉ rõ `Spearphishing Attachment` vs `Spearphishing via Service`, nguồn log cần thu thập sẽ rõ ràng ngay lập tức.
+

@@ -92,6 +92,8 @@ export interface ProcedureItem {
   name: string
   type: string
   description: string
+  action_vi?: string
+  is_auto?: boolean
 }
 
 export interface AnalyticLogSource {
@@ -157,6 +159,19 @@ export interface TechniqueDetail {
     rel_description?: string
     data?: { sectors?: string[] }
   }>
+  fast_card?: {
+    what: string
+    sign: string
+    mitigate: string
+  }
+  tactical_insight?: string
+  horizon?: {
+    boundary_type: 'pre' | 'cross' | 'internal'
+    stage1: string
+    stage2: string
+    stage3: string
+    insight: string
+  }
 }
 
 export interface SearchResultItem {

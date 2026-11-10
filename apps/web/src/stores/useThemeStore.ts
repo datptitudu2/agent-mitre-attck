@@ -11,6 +11,7 @@ interface ThemeState {
 function applyDomTheme(mode: ThemeMode) {
   if (typeof document === 'undefined') return
   const root = document.documentElement
+  root.setAttribute('data-theme', mode)
   if (mode === 'dark') {
     root.classList.add('dark')
   } else {
@@ -48,3 +49,4 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
     set({ theme: next })
   },
 }))
+

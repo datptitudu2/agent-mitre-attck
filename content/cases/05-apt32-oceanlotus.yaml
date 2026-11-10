@@ -93,3 +93,4 @@ steps:
       Kết nối định kỳ theo chu kỳ thời gian đều đặn (beaconing) kèm đột biến dung lượng dữ liệu gửi ra ngoài vào các thời điểm cố định.
     defender_vi: >
       Kết hợp phân tích nhịp kết nối mạng (beacon analysis), kiểm tra DNS/Proxy log và giới hạn các máy chủ nội bộ không được phép kết nối trực tiếp ra Internet.
+

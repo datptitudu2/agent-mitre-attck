@@ -39,6 +39,10 @@ tmp/
 *.sqlite3
 playwright-report/
 test-results/
+check_db.js
+inspect_styles.mjs
+start_api.js
+take_audit_*.mjs
 
 # OS & IDE
 .DS_Store
@@ -46,3 +50,4 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 .idea/
+

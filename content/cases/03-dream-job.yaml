@@ -83,3 +83,4 @@ steps:
       Tiện ích nén dữ liệu chạy ở chế độ dòng lệnh ẩn và gom nhiều tệp từ các thư mục mã nguồn/tài liệu nội bộ vào thư mục tạm.
     defender_vi: >
       Phân loại dữ liệu nhạy cảm (DLP), cảnh báo hành vi nén hàng loạt tài liệu nội bộ và theo dõi lưu lượng tải lên các dịch vụ lưu trữ bên ngoài.
+
