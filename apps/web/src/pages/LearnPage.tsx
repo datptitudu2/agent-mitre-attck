@@ -2,11 +2,11 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   BookOpen,
-  Cpu,
   FileCode2,
   Layers,
   Lightbulb,
   Radar,
+  ShieldCheck,
   Sliders,
   Terminal,
 } from 'lucide-react'
@@ -156,13 +156,13 @@ const CURRICULUM_MODULES = [
   },
   {
     num: '04',
-    title: 'Phát Hiện Bất Thường Dựa Trên Machine Learning',
-    desc: 'Ứng dụng các thuật toán học máy để bắt các cuộc tấn công không có chữ ký cố định: tính toán Shannon Entropy tham số, mô hình xác suất Bigram cây tiến trình và DNS Tunneling.',
-    readTime: '20 phút đọc',
-    topics: ['Shannon Entropy tham số dòng lệnh', 'Bigram Process Tree Rarity Model (Laplace smoothing)', 'Phân loại DNS Tunneling qua Google Colab'],
-    link: '/rules',
-    actionText: 'Xem ML Recipes & Colab',
-    icon: Cpu,
+    title: 'Kỹ Thuật Đánh Giá Kháng Né Tránh & Tối Ưu Độ Phủ (Resilient Detections)',
+    desc: 'Đánh giá độ bền của luật trước các kỹ thuật đổi tên file, làm mờ lệnh (obfuscation) và Living off the Land. Giảm thiểu báo động giả và liên kết kiểm thử với Atomic Red Team.',
+    readTime: '15 phút đọc',
+    topics: ['Thang đo Summiting the Pyramid (David Bianco)', 'Kỹ thuật phát hiện hành vi kháng bypass', 'Kiểm thử độ nhạy với Atomic Red Team'],
+    link: '/coverage',
+    actionText: 'Mở Coverage Lab',
+    icon: ShieldCheck,
   },
 ]
 
@@ -184,9 +184,8 @@ export function LearnPage() {
             Tri thức thực chiến, Bản chất hành vi và Công cụ kỹ thuật
           </strong>
           . Trang bị kiến thức từ cảm biến <KnowledgeHovercard termKey="EDR">EDR</KnowledgeHovercard> và{' '}
-          <KnowledgeHovercard termKey="SIEM">SIEM</KnowledgeHovercard> đến luật{' '}
-          <KnowledgeHovercard termKey="Sigma">Sigma</KnowledgeHovercard> và tính toán{' '}
-          <KnowledgeHovercard termKey="Entropy">Entropy</KnowledgeHovercard>. Hoàn toàn không bài tập trắc nghiệm, không chấm điểm, không giới hạn tiến độ.
+          <KnowledgeHovercard termKey="SIEM">SIEM</KnowledgeHovercard> đến quy tắc{' '}
+          <KnowledgeHovercard termKey="Sigma">Sigma</KnowledgeHovercard> chuẩn mở và phân tích tương quan tiến trình. Hoàn toàn không bài tập trắc nghiệm, không chấm điểm, không giới hạn tiến độ.
         </p>
       </div>
 

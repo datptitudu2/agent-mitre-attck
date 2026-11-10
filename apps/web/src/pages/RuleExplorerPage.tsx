@@ -1,14 +1,12 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
-  Brain,
   FileCode2,
   Search,
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
-import type { MlFeatureRecipe, SigmaRule } from '@/lib/types'
+import type { SigmaRule } from '@/lib/types'
 import { SigmaRuleViewer } from '@/components/detection/SigmaRuleViewer'
-import { MlRecipeCard } from '@/components/detection/MlRecipeCard'
 
 export function RuleExplorerPage() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -27,15 +25,7 @@ export function RuleExplorerPage() {
     },
   })
 
-  // 2. Tải danh sách ML Recipes
-  const { data: mlData } = useQuery({
-    queryKey: ['ml-recipes'],
-    queryFn: () => apiFetch<{ recipes: MlFeatureRecipe[]; total: number }>('/api/detection/ml-recipes'),
-  })
-
   const rules = rulesData?.rules || []
-  const mlRecipes = mlData?.recipes || []
-
   const activeRule = rules.find((r) => r.id === activeRuleId) || rules[0]
 
   return (
@@ -169,30 +159,6 @@ export function RuleExplorerPage() {
               Không có luật nào khớp với bộ lọc.
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Bottom Section: Machine Learning Feature Recipes */}
-      <div className="pt-8 border-t border-bone-300/80 dark:border-bone-800 space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <div className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-wider text-signal-amber font-semibold">
-              <Brain className="h-4 w-4" />
-              <span>Mắt Xích ⑤ // Machine Learning Feature Recipes</span>
-            </div>
-            <h2 className="font-serif text-2xl font-normal text-bone-950 dark:text-bone-50 tracking-tight mt-0.5">
-              Công Thức Trích Xuất Đặc Trưng Học Máy Cho Phát Hiện Bất Thường
-            </h2>
-          </div>
-          <p className="text-xs text-bone-500 font-mono">
-            Kèm mã nguồn Python / SQL và liên kết chạy thực nghiệm trên Google Colab
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6">
-          {mlRecipes.map((recipe) => (
-            <MlRecipeCard key={recipe.id} recipe={recipe} />
-          ))}
         </div>
       </div>
     </div>

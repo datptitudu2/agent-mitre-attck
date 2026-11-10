@@ -6,7 +6,6 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronUp,
-  Cpu,
   ExternalLink,
   FileCode2,
   Languages,
@@ -16,7 +15,7 @@ import {
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { getTacticMeta } from '@/lib/tacticTheme'
-import type { AnnotatedLogSample, MlFeatureRecipe, SigmaRule, TechniqueDetail } from '@/lib/types'
+import type { AnnotatedLogSample, SigmaRule, TechniqueDetail } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { useTechniqueTranslation } from '@/hooks/useTechniqueTranslation'
 import { useBookmarks, useTechniqueNote } from '@/hooks/useUserData'
@@ -24,7 +23,6 @@ import { useUiStore } from '@/stores/useUiStore'
 import { renderStixText, StixArticleViewer } from '@/lib/stixRenderer'
 import { AnnotatedLogReader } from '@/components/telemetry/AnnotatedLogReader'
 import { SigmaRuleViewer } from '@/components/detection/SigmaRuleViewer'
-import { MlRecipeCard } from '@/components/detection/MlRecipeCard'
 import { KnowledgeHovercard } from '@/components/common/KnowledgeHovercard'
 
 // 15 Tactics chuẩn Enterprise v20.1 theo thứ tự chuỗi tấn công (Không cuộn ngang, vừa khít khung)
@@ -101,13 +99,6 @@ export function TechniqueSlideOver() {
     queryKey: ['tech-sigma-rules', attackId],
     queryFn: () =>
       apiFetch<{ rules: SigmaRule[]; total: number }>(`/api/detection/sigma-rules?technique_id=${attackId}`),
-    enabled: Boolean(attackId),
-  })
-
-  const { data: techMlData } = useQuery({
-    queryKey: ['tech-ml-recipes', attackId],
-    queryFn: () =>
-      apiFetch<{ recipes: MlFeatureRecipe[]; total: number }>(`/api/detection/ml-recipes?technique_id=${attackId}`),
     enabled: Boolean(attackId),
   })
 
@@ -232,15 +223,14 @@ export function TechniqueSlideOver() {
     return `${detail.name} (${detail.attack_id}) thực thi ngay bên trong hệ thống nội bộ. Đây là vùng kiểm soát chính của EDR/SIEM qua Process Creation và Memory Modification.`
   }, [detail, boundaryType])
 
-  // "Chuỗi 6 mắt xích" — Khung tư duy duy nhất cho MỌI technique
-  const sixChainDossier = useMemo(() => {
+  // "Chuỗi 5 mắt xích" — Khung tư duy thực chiến cho MỌI technique
+  const fiveChainDossier = useMemo(() => {
     if (!detail) {
       return {
         action: '',
         artifact: '',
         logSource: '',
         detection: '',
-        mlFeature: '',
         mitigation: '',
       }
     }
@@ -301,20 +291,7 @@ export function TechniqueSlideOver() {
       detection = `Quy tắc tương quan hành vi giám sát tiến trình và kết nối mạng cho ${detail.attack_id}.`
     }
 
-    // 5. ĐẶC TRƯNG ML
-    let mlFeature = ''
-    const dcLower = artifact.toLowerCase()
-    if (dcLower.includes('process') || dcLower.includes('tiến trình')) {
-      mlFeature = 'Tần suất hiếm của cặp tiến trình cha–con, độ dài & entropy của CommandLine, độ sâu cây tiến trình.'
-    } else if (dcLower.includes('network') || dcLower.includes('mạng') || boundaryType === 'cross') {
-      mlFeature = 'Tần suất kết nối IP/Domain hiếm gặp, độ dài URI, tỷ lệ byte gửi/nhận, khoảng cách beacon.'
-    } else if (dcLower.includes('logon') || dcLower.includes('đăng nhập')) {
-      mlFeature = 'Tần suất đăng nhập theo khung giờ người dùng, tỷ lệ thất bại đột biến, khoảng cách địa lý IP không tưởng.'
-    } else {
-      mlFeature = 'Tần suất xuất hiện theo baseline từng máy trạm/server, độ lệch chuẩn so với nhóm người dùng cùng vai trò.'
-    }
-
-    // 6. CÁCH CHẶN
+    // 5. CÁCH CHẶN
     let mitigation = ''
     if (detail.mitigations.length > 0) {
       const topMit = detail.mitigations[0]
@@ -325,7 +302,7 @@ export function TechniqueSlideOver() {
       mitigation = 'Phân tách quyền tối thiểu (Least Privilege), kiểm soát thực thi ứng dụng (WDAC/AppLocker).'
     }
 
-    return { action, artifact, logSource, detection, mlFeature, mitigation }
+    return { action, artifact, logSource, detection, mitigation }
   }, [detail, boundaryType])
 
   // Tính toán dữ liệu Chòm sao d3-force giả lập theo giải thuật lực đàn hồi xác định (Deterministic Force Layout)
@@ -603,7 +580,7 @@ export function TechniqueSlideOver() {
               {detail && (
                 <>
                   {/* =========================================================
-                      00. THẺ NHANH: CHUỖI 6 MẮT XÍCH (KHUNG VIỀN DUY NHẤT)
+                      00. THẺ NHANH: CHUỖI 5 MẮT XÍCH (KHUNG VIỀN DUY NHẤT)
                      ========================================================= */}
                   <section
                     id="sec-00"
@@ -613,10 +590,10 @@ export function TechniqueSlideOver() {
                     <div className="flex items-center justify-between border-b border-line/60 pb-2">
                       <div className="border border-[#FF5A36] text-[#FF5A36] bg-[#FF5A36]/10 px-2.5 py-1 rounded-xs font-mono text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5 shadow-[0_0_8px_rgba(255,90,54,0.25)]">
                         <Sparkles className="h-3.5 w-3.5" />
-                        <span>THẺ NHANH // CHUỖI 6 MẮT XÍCH ĐỊNH VỊ KỸ THUẬT</span>
+                        <span>THẺ NHANH // CHUỖI 5 MẮT XÍCH ĐỊNH VỊ KỸ THUẬT</span>
                       </div>
                       <span className="font-mono text-[10px] text-bone-500 uppercase">
-                        KHUNG TƯ DUY DUY NHẤT
+                        KHUNG TƯ DUY THỰC CHIẾN
                       </span>
                     </div>
 
@@ -627,7 +604,7 @@ export function TechniqueSlideOver() {
                           ① Hành vi
                         </span>
                         <div className="text-bone-100 leading-relaxed font-normal pt-0.5">
-                          {renderStixText(sixChainDossier.action).content}
+                          {renderStixText(fiveChainDossier.action).content}
                         </div>
                       </div>
 
@@ -637,7 +614,7 @@ export function TechniqueSlideOver() {
                           ② Dấu vết
                         </span>
                         <div className="text-bone-200 leading-relaxed font-normal pt-0.5">
-                          {renderStixText(sixChainDossier.artifact).content}
+                          {renderStixText(fiveChainDossier.artifact).content}
                         </div>
                       </div>
 
@@ -647,7 +624,7 @@ export function TechniqueSlideOver() {
                           ③ Nguồn Log
                         </span>
                         <div className="text-bone-200 leading-relaxed font-normal pt-0.5">
-                          {renderStixText(sixChainDossier.logSource).content}
+                          {renderStixText(fiveChainDossier.logSource).content}
                         </div>
                       </div>
 
@@ -657,7 +634,7 @@ export function TechniqueSlideOver() {
                           ④ Cách bắt
                         </span>
                         <div className="text-bone-200 leading-relaxed font-normal pt-0.5">
-                          {renderStixText(sixChainDossier.detection).content}
+                          {renderStixText(fiveChainDossier.detection).content}
                           {techSigmaData?.rules && techSigmaData.rules.length > 0 && (
                             <span className="inline-flex items-center gap-1 font-mono text-[10px] px-2 py-0.5 rounded-xs bg-signal-amber/15 text-signal-amber border border-signal-amber/30 font-bold ml-2">
                               <FileCode2 className="h-3 w-3" />
@@ -667,29 +644,13 @@ export function TechniqueSlideOver() {
                         </div>
                       </div>
 
-                      {/* 5. Đặc trưng ML */}
-                      <div className="flex items-start gap-2.5">
-                        <span className="border border-[#FF5A36] text-[#FF5A36] bg-[#FF5A36]/15 px-2 py-0.5 rounded-xs font-mono text-[11px] font-bold uppercase tracking-wider shrink-0 select-none shadow-[0_0_6px_rgba(255,90,54,0.2)]">
-                          ⑤ Đặc trưng ML
-                        </span>
-                        <div className="text-bone-200 leading-relaxed font-normal pt-0.5">
-                          {renderStixText(sixChainDossier.mlFeature).content}
-                          {techMlData?.recipes && techMlData.recipes.length > 0 && (
-                            <span className="inline-flex items-center gap-1 font-mono text-[10px] px-2 py-0.5 rounded-xs bg-signal-teal/15 text-signal-teal border border-signal-teal/30 font-bold ml-2">
-                              <Cpu className="h-3 w-3" />
-                              {techMlData.recipes.length} CÔNG THỨC ML
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* 6. Cách chặn */}
+                      {/* 5. Cách chặn */}
                       <div className="flex items-start gap-2.5">
                         <span className="border border-[#F2B84B] text-[#F2B84B] bg-[#F2B84B]/15 px-2 py-0.5 rounded-xs font-mono text-[11px] font-bold uppercase tracking-wider shrink-0 select-none shadow-[0_0_6px_rgba(242,184,75,0.2)]">
-                          ⑥ Cách chặn
+                          ⑤ Cách chặn
                         </span>
                         <div className="text-bone-200 leading-relaxed font-normal pt-0.5">
-                          {renderStixText(sixChainDossier.mitigation).content}
+                          {renderStixText(fiveChainDossier.mitigation).content}
                         </div>
                       </div>
 
@@ -1370,31 +1331,6 @@ export function TechniqueSlideOver() {
                         </div>
                       )}
                     </div>
-
-                    {/* CÔNG THỨC ĐẶC TRƯNG MACHINE LEARNING (ML FEATURE RECIPES) */}
-                    <div className="pt-4 border-t border-line/60 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-signal-teal uppercase tracking-wider">
-                          <Cpu className="h-4 w-4" />
-                          <span>CÔNG THỨC ĐẶC TRƯNG MACHINE LEARNING ({techMlData?.recipes.length || 0})</span>
-                        </div>
-                        <span className="font-mono text-[10px] text-bone-500">
-                          TÍN HIỆU TOÁN HỌC &amp; CODE TRÍCH XUẤT
-                        </span>
-                      </div>
-
-                      {techMlData?.recipes && techMlData.recipes.length > 0 ? (
-                        <div className="space-y-4">
-                          {techMlData.recipes.map((recipe) => (
-                            <MlRecipeCard key={recipe.id} recipe={recipe} />
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="p-3.5 border border-line/40 rounded-xs bg-surface font-mono text-[11px] text-bone-400 italic">
-                          CHƯA CÓ CÔNG THỨC ML ĐƯỢC DUYỆT RIÊNG CHO KỸ THUẬT NÀY · THAM KHẢO CÁC ĐẶC TRƯNG PROCESS/NETWORK CHUNG.
-                        </div>
-                      )}
-                    </div>
                   </section>
 
                   {/* =========================================================
@@ -1558,7 +1494,7 @@ export function TechniqueSlideOver() {
                       </div>
 
                       <p className="text-xs text-bone-300 leading-relaxed">
-                        Kỹ thuật <strong className="text-bone-100 font-mono">{detail.attack_id}</strong> đòi hỏi sự phối hợp chặt chẽ giữa cảm biến <KnowledgeHovercard termKey="EDR">EDR</KnowledgeHovercard> trên thiết bị đầu cuối và hệ thống lưu trữ tập trung <KnowledgeHovercard termKey="SIEM">SIEM</KnowledgeHovercard>. Chú ý phát hiện thủ đoạn <KnowledgeHovercard termKey="LotL">Living off the Land (LotL)</KnowledgeHovercard> bằng cách theo dõi bất thường <KnowledgeHovercard termKey="Parent-Child">cặp tiến trình cha–con</KnowledgeHovercard> và tính toán <KnowledgeHovercard termKey="Entropy">Entropy dòng lệnh</KnowledgeHovercard>.
+                        Kỹ thuật <strong className="text-bone-100 font-mono">{detail.attack_id}</strong> đòi hỏi sự phối hợp chặt chẽ giữa cảm biến <KnowledgeHovercard termKey="EDR">EDR</KnowledgeHovercard> trên thiết bị đầu cuối và hệ thống lưu trữ tập trung <KnowledgeHovercard termKey="SIEM">SIEM</KnowledgeHovercard>. Chú ý phát hiện thủ đoạn <KnowledgeHovercard termKey="LotL">Living off the Land (LotL)</KnowledgeHovercard> bằng cách theo dõi bất thường <KnowledgeHovercard termKey="Parent-Child">cặp tiến trình cha–con</KnowledgeHovercard> và các cờ tham số dòng lệnh bất thường.
                       </p>
 
                       <div className="pt-2 flex flex-wrap items-center gap-2 text-[11px] font-mono border-t border-line/50">

@@ -328,7 +328,7 @@ export function DashboardPage() {
             </h2>
 
             <p className="text-xs leading-relaxed text-bone-300">
-              Khám phá luật phát hiện chuẩn mở SigmaHQ, phân tích Detection Tree và kiểm tra công thức Machine Learning.
+              Khám phá thư viện luật phát hiện chuẩn mở SigmaHQ, phân tích Detection Tree và đối soát rủi ro True vs False Positive.
             </p>
           </div>
 

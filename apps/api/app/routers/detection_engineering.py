@@ -185,3 +185,4 @@ async def get_knowledge_hovercards(
         }
     }
     return {"hovercards": terms}
+
