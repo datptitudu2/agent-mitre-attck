@@ -43,6 +43,7 @@ check_db.js
 inspect_styles.mjs
 start_api.js
 take_audit_*.mjs
+seed_fake_users.py
 
 # OS & IDE
 .DS_Store
