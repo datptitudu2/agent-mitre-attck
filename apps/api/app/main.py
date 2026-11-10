@@ -13,6 +13,7 @@ from apps.api.app.routers import (
     cases_and_content,
     entities_and_diff,
     matrix_and_techniques,
+    telemetry,
     translate,
     versions_and_sync,
 )
@@ -64,6 +65,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api_router.include_router(matrix_and_techniques.router)
     api_router.include_router(entities_and_diff.router)
     api_router.include_router(cases_and_content.router)
+    api_router.include_router(telemetry.router)
     api_router.include_router(translate.router)
 
     application.include_router(api_router)

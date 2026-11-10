@@ -9,16 +9,18 @@ import {
   ExternalLink,
   Languages,
   Sparkles,
+  Terminal,
   X,
 } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { getTacticMeta } from '@/lib/tacticTheme'
-import type { TechniqueDetail } from '@/lib/types'
+import type { AnnotatedLogSample, TechniqueDetail } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { useTechniqueTranslation } from '@/hooks/useTechniqueTranslation'
 import { useBookmarks, useTechniqueNote } from '@/hooks/useUserData'
 import { useUiStore } from '@/stores/useUiStore'
 import { renderStixText, StixArticleViewer } from '@/lib/stixRenderer'
+import { AnnotatedLogReader } from '@/components/telemetry/AnnotatedLogReader'
 
 // 15 Tactics chuẩn Enterprise v20.1 theo thứ tự chuỗi tấn công (Không cuộn ngang, vừa khít khung)
 // ST = Stealth (TA0005 v19+), DI = Defense Impairment (TA0112 v19+)
@@ -83,6 +85,14 @@ export function TechniqueSlideOver() {
       setSelectedOs(platforms[0])
     }
   }, [platforms, selectedOs])
+
+  const { data: techLogsData } = useQuery({
+    queryKey: ['annotated-logs', attackId],
+    queryFn: () =>
+      apiFetch<{ logs: AnnotatedLogSample[] }>(`/api/telemetry/annotated-logs/${attackId}`),
+    enabled: Boolean(attackId),
+  })
+
 
   useEffect(() => {
     setNoteDraft(note?.body_md ?? '')
@@ -653,6 +663,19 @@ export function TechniqueSlideOver() {
                           {renderStixText(sixChainDossier.mitigation).content}
                         </div>
                       </div>
+
+                      {/* Mẫu Log thực chiến có chú giải (Annotated Log Reader) */}
+                      {techLogsData?.logs && techLogsData.logs.length > 0 && (
+                        <div className="pt-3 border-t border-line/60 space-y-2">
+                          <div className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-signal-amber uppercase tracking-wider">
+                            <Terminal className="h-3.5 w-3.5" />
+                            <span>MẪU NHẬT KÝ THỰC CHIẾN CÓ CHÚ GIẢI TỪNG DÒNG</span>
+                          </div>
+                          {techLogsData.logs.map((sampleLog) => (
+                            <AnnotatedLogReader key={sampleLog.id} sample={sampleLog} compact />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </section>
 

@@ -447,3 +447,77 @@ export interface AdminHealthResponse {
     created_at: string
   }>
 }
+
+export interface CollectorEventSchema {
+  field: string
+  label: string
+  desc: string
+}
+
+export interface CollectorEvent {
+  id: string
+  collector_id: string
+  event_code: string
+  event_name: string
+  description: string
+  sample_payload: Record<string, any>
+  fields_schema: CollectorEventSchema[]
+}
+
+export interface TelemetryCollector {
+  id: string
+  name: string
+  os: 'windows' | 'linux' | 'macos' | 'cloud' | 'network' | 'multi'
+  category: 'host_endpoint' | 'network_sensor' | 'cloud_audit' | 'identity'
+  is_agentless: boolean
+  description: string
+  doc_url: string
+  events_count: number
+  techniques_covered_count: number
+  events?: CollectorEvent[]
+}
+
+export interface GreedyGain {
+  collector_id: string
+  collector_name: string
+  os: string
+  additional_techniques: number
+  marginal_gain_pct: number
+  key_unlocked_capabilities: string[]
+}
+
+export interface TacticCoverage {
+  covered: number
+  total: number
+  percentage: number
+}
+
+export interface TelemetryPlanResponse {
+  covered_techniques_count: number
+  total_techniques_count: number
+  coverage_percentage: number
+  tactics_coverage: Record<string, TacticCoverage>
+  greedy_recommendations: GreedyGain[]
+  uncovered_techniques_sample: Array<{
+    technique_id: string
+    technique_name: string
+    tactics: string[]
+    platforms: string[]
+    capable_collectors: string[]
+  }>
+}
+
+export interface AnnotatedLogSample {
+  id: string
+  technique_id: string
+  technique_name: string
+  collector_id: string
+  collector_name: string
+  collector_os: string
+  scenario_title: string
+  scenario_description: string
+  raw_log: Record<string, any>
+  annotations: Record<string, string>
+  created_at: string
+}
+
